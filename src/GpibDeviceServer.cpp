@@ -1,4 +1,4 @@
-static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServer.cpp,v 1.1.1.1 2004-06-30 13:52:12 syldup Exp $";
+static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServer.cpp,v 1.2 2005-02-09 15:25:03 xavela Exp $";
 //+=============================================================================
 //
 // file :         GpibDeviceServer.cpp
@@ -11,11 +11,14 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //
 // project :      TANGO Device Server
 //
-// $Author: syldup $
+// $Author: xavela $
 //
-// $Revision: 1.1.1.1 $
+// $Revision: 1.2 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.1.1  2004/06/30 13:52:12  syldup
+// intial import from soleil
+//
 // Revision 1.5  2004/06/30 08:57:58  elattaoui
 // xavier : ajout de #ifdef linux
 // changement de #define MAX_... par const int !

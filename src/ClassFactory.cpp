@@ -1,4 +1,4 @@
-static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/ClassFactory.cpp,v 1.1.1.1 2004-06-30 13:52:11 syldup Exp $";
+static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/ClassFactory.cpp,v 1.2 2005-02-09 15:24:52 xavela Exp $";
 //+=============================================================================
 //
 // file :        ClassFactory.cpp
@@ -10,11 +10,14 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //
 // project :     TANGO Device Server
 //
-// $Author: syldup $
+// $Author: xavela $
 //
-// $Revision: 1.1.1.1 $
+// $Revision: 1.2 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.1.1  2004/06/30 13:52:11  syldup
+// intial import from soleil
+//
 // Revision 1.4  2004/06/30 08:57:58  elattaoui
 // xavier : ajout de #ifdef linux
 // changement de #define MAX_... par const int !
@@ -54,8 +57,8 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 /**
  *	Create GpibDeviceServerClass singleton and store it in DServer object.
  *
- * @author	$Author: syldup $
- * @version	$Revision: 1.1.1.1 $ $
+ * @author	$Author: xavela $
+ * @version	$Revision: 1.2 $ $
  */
 
 void Tango::DServer::class_factory()

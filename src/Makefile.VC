@@ -3,14 +3,14 @@ device_server= GpibDeviceServer
 #
 #  Des includes particuliers
 #  Mettre /Ic:\monchemininclude /:\monautrechemininclude
-INCUSER=/ID:\MyDeviceServer\Gpib\include\ni488.h
+INCUSER=/I..\include\ni488.h
 
 #
 #  et vos Librairies
 # style
 # 
 # LIBUSER = "x:\moncheminlibrairie\malibrairie.lib"
-LIBUSER=D:\MyDeviceServer\Gpib\lib\gpib-32.obj
+LIBUSER=..\lib\gpib-32.obj
 
 #vos OBJ
 #OBJUSER = 
@@ -22,7 +22,7 @@ LIBUSER=D:\MyDeviceServer\Gpib\lib\gpib-32.obj
 #
 # ------------------Fin des modifications pour le end user -------------------------------------
 #
-make_dir=$(TANGO_WIN32_ROOT)\env\
+make_dir=$(SOLEIL_ROOT)\env\
 
 
 #  Les définitions communes à tous les DeviceServeurs

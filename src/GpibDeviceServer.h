@@ -6,11 +6,14 @@
 //
 // project :	gpidDeviceServer
 //
-// $Author: syldup $
+// $Author: xavela $
 //
-// $Revision: 1.1.1.1 $
+// $Revision: 1.2 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.1.1  2004/06/30 13:52:12  syldup
+// intial import from soleil
+//
 // Revision 1.5  2004/06/30 08:57:58  elattaoui
 // xavier : ajout de #ifdef linux
 // changement de #define MAX_... par const int !
@@ -56,8 +59,8 @@
 //using namespace Tango;
 
 /**
- * @author	$Author: syldup $
- * @version	$Revision: 1.1.1.1 $ $
+ * @author	$Author: xavela $
+ * @version	$Revision: 1.2 $ $
  */
 
  //	Add your own constants definitions here.
