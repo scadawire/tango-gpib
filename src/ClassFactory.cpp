@@ -1,4 +1,4 @@
-static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/ClassFactory.cpp,v 1.2 2005-02-09 15:24:52 xavela Exp $";
+static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/ClassFactory.cpp,v 1.3 2005-03-15 11:03:32 xavela Exp $";
 //+=============================================================================
 //
 // file :        ClassFactory.cpp
@@ -12,11 +12,14 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //
 // $Author: xavela $
 //
-// $Revision: 1.2 $
+// $Revision: 1.3 $
 //
 // $Log: not supported by cvs2svn $
-// Revision 1.1.1.1  2004/06/30 13:52:11  syldup
-// intial import from soleil
+// Revision 1.6  2005/03/15 10:40:04  elattaoui
+// xavier.el : final version updated. Official version, to avoid local copies.
+//
+// Revision 1.5  2005/02/22 11:00:52  elattaoui
+// xavier : makefile.vc changed.
 //
 // Revision 1.4  2004/06/30 08:57:58  elattaoui
 // xavier : ajout de #ifdef linux
@@ -58,7 +61,7 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
  *	Create GpibDeviceServerClass singleton and store it in DServer object.
  *
  * @author	$Author: xavela $
- * @version	$Revision: 1.2 $ $
+ * @version	$Revision: 1.3 $ $
  */
 
 void Tango::DServer::class_factory()

@@ -43,16 +43,6 @@ LISTEOBJ = \
    $(OBJDIR)\main.OBJ\
    $(OBJDIR)\$(device_server)Class.OBJ
 
-SRCS		=    \
-    $(device_server).CPP\
-    GpibDevice.CPP\
-    GpibDeviceException.CPP\
-   ClassFactory.CPP\
-   main.CPP \
-   $(device_server)Class.CPP
-    
-
-
 # --------------------------------------
 !include $(make_dir)\common_target.opt
 
