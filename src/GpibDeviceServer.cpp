@@ -1,4 +1,4 @@
-static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServer.cpp,v 1.3 2005-03-15 11:03:32 xavela Exp $";
+static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServer.cpp,v 1.4 2005-05-13 15:18:20 andy_gotz Exp $";
 //+=============================================================================
 //
 // file :         GpibDeviceServer.cpp
@@ -11,11 +11,14 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //
 // project :      TANGO Device Server
 //
-// $Author: xavela $
+// $Author: andy_gotz $
 //
-// $Revision: 1.3 $
+// $Revision: 1.4 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3  2005/03/15 11:03:32  xavela
+// xavier.el :  official version of the Gpib Device Server.
+//
 // Revision 1.7  2005/03/15 10:40:04  elattaoui
 // xavier.el : final version updated. Official version, to avoid local copies.
 //
@@ -97,6 +100,8 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //	BCConfig	|	bcconfig()
 //	SendBinData	|	send_bin_data()
 //	ReceiveBinData	|	receive_bin_data()
+//	Lock	|	lock()
+//	UnLock	|	un_lock()
 //
 //===================================================================
 
@@ -121,12 +126,14 @@ namespace GpibDeviceServer
 GpibDeviceServer::GpibDeviceServer(Tango::DeviceClass *cl,string &s):Tango::Device_2Impl(cl,s.c_str())
 {
 	gpib_device = NULL;	
+	gpibDeviceAddress = -1;
 	init_device();
 }
 
 GpibDeviceServer::GpibDeviceServer(Tango::DeviceClass *cl,const char *s):Tango::Device_2Impl(cl,s)
 {
 	gpib_device = NULL;	
+	gpibDeviceAddress = -1;
 	init_device();
 }
 
@@ -134,6 +141,7 @@ GpibDeviceServer::GpibDeviceServer(Tango::DeviceClass *cl,const char *s,const ch
 	:Tango::Device_2Impl(cl,s,d)
 {
 	gpib_device = NULL;	
+	gpibDeviceAddress = -1;
 	init_device();
 }
 //+----------------------------------------------------------------------------
@@ -189,38 +197,9 @@ void GpibDeviceServer::init_device()
 		gpib_device = NULL;
 	}
 	
-	// Now try to open gpibDevice by address property; gpibDeviceAddress.
-	// To check that there is a real gpib Device behind the driver name,
-	// we send an isAlive command. If answer is <=0 the device is off or
-	// absent.
-	try 
-	{
-		gpib_device = new gpibDevice((int) gpibDeviceAddress, gpibBoardName);
-		
-		// Force exception if device not listening (Off)
-		int sb = gpib_device->isAlive();
-		if (sb <=0) throw gpibDeviceException((string)"",(string)"",(string)"",(string)"", 0, 0);
-		gpib_device->setTimeOut(gpibDeviceTimeOut);	// Set Time Out.
-		dev_open = true;
-		set_state(Tango::ON);
-		set_status("Gpib device is OK.");
-        cout << "Device found by address ("<< gpibDeviceAddress<<")." << endl;
-	} 
-	catch (gpibDeviceException e) 
-	{
-        cout << "Cant find device by address ("<< gpibDeviceAddress<<")." << endl;
-	}
-	catch (...) 
-	{
-		cout << "UNEXPECTED EXCEPTION !!!" << endl;	
-		exit(-1);
-	}
-	
-    
-	// Can't open device by address, try by name with names property; gpibDeviceName.
 	if (dev_open == false) 
 	{
-		cout << "Trying by name:" << endl;
+		cout << "Trying to open gpib device by name:" << endl;
 		
 		try 
 		{
@@ -1398,7 +1377,7 @@ void GpibDeviceServer::config(const Tango::DevVarLongArray *argin)
 	
 	try {
 		
-		gpib_device->config( (*argin)[0], (*argin)[1]);
+		gpib_device->config( (*argin)[0], (*argin)[1] );
 		
 	} catch (gpibDeviceException e) {
 		
@@ -1601,6 +1580,44 @@ Tango::DevVarCharArray *GpibDeviceServer::receive_bin_data(Tango::DevUShort argi
 	delete [] response;
 	
 	return argout;
+}
+
+//+------------------------------------------------------------------
+/**
+ *	method:	GpibDeviceServer::lock
+ *
+ *	description:	method to execute "Lock"
+ *	Lock the gpib bus (you must unlock it afterwards !)
+ *
+ *
+ */
+//+------------------------------------------------------------------
+void GpibDeviceServer::lock()
+{
+	DEBUG_STREAM << "GpibDeviceServer::lock(): entering... !" << endl;
+
+	//	Add your own code to control device here
+	board0->lock();
+
+}
+
+//+------------------------------------------------------------------
+/**
+ *	method:	GpibDeviceServer::un_lock
+ *
+ *	description:	method to execute "UnLock"
+ *	Unlock the gpib bus (after a lock)
+ *
+ *
+ */
+//+------------------------------------------------------------------
+void GpibDeviceServer::un_lock()
+{
+	DEBUG_STREAM << "GpibDeviceServer::un_lock(): entering... !" << endl;
+
+	//	Add your own code to control device here
+	board0->unlock();
+
 }
 
 }	//	namespace

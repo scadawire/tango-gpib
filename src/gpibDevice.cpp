@@ -1,23 +1,18 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "gpibDevice.h"
-
 #ifdef _solaris
 #include "ugpib.h"	/* Warning: modified header for C++ compatibility */
 #endif
+#include "gpibDevice.h"
 
-#ifdef linux
-#include <gpib/ib.h>
-#endif
+
+using namespace std;
 
 #ifdef WIN32
 #include <windows.h>
 #include "ni488.h"	
 #endif
-
-using namespace std;
-
 /**
  * Standard GPIB errors strings.
  */
@@ -151,40 +146,32 @@ gpibDevice::gpibDevice(string dev_name)
  * gpibDevice( "dev4", "gpib0").
  *
  */
-gpibDevice::gpibDevice(int add, string boardname) 
+gpibDevice::gpibDevice(int add) 
 {
-   string ss;
-   
-   ostringstream os;
+    ostringstream os;
     os << add;
+    int pad;        
 	resetState();
     // Get Device by name + addr.
     device_name = "dev" + os.str();
-    devAddr = add;
-
-	  // Save board id.
-    ss = boardname.substr(4);
-    gpib_board = atoi( ss.c_str() );
-    
-    if ((gpib_board < 0) || (gpib_board> MAX_BOARD_INDEX) )
-    {
-	throw gpibDeviceException( device_name, "Error occurs while getting device Addr ",
-	              "Board index is out of range.",
-				  "Value must be between 0 and 7",
-				  getiberr(),getibsta());
-    }
-		
-	// by default EOT is true and EOS is false 
-	devID = ibdev(gpib_board,  devAddr, 0, T3s , 1 ,0);
-
-	cout << "gpib_board=" << gpib_board<< ",devID=" << devID << ",devAddr=" << devAddr <<endl;
+    devID = ibfind( (char *) device_name.c_str() );
     saveState();
     if ( (devID & ERR) || (dev_ibsta & ERR) )
     {
 	throw gpibDeviceException( device_name, "Error occurs while connecting to GPIB ",
 	                         iberrToString(), ibstaToString(), getiberr(),getibsta());
     }
-
+  
+	resetState();
+    ibask(devID,0x01,&pad);	// Get PAD;
+    saveState();
+    if ( (devID & ERR) || (dev_ibsta & ERR) )
+    {
+	throw gpibDeviceException( device_name, "Error occurs while getting device Addr ",
+	                         iberrToString(), ibstaToString(), getiberr(),getibsta());
+    }
+    devAddr = pad;
+    gpib_board = GPIB_DEFAULT_BOARD;
 };
 
 /**
@@ -348,7 +335,7 @@ string gpibDevice::read()
     string ret;
 
 	resetState();
-    memset(rd_buffer,0, RD_BUFFER_SIZE);    
+    memset(rd_buffer,0, (RD_BUFFER_SIZE+1));    
     ibrd(devID,rd_buffer,RD_BUFFER_SIZE);    
     ret = rd_buffer;
     saveState();
@@ -375,8 +362,6 @@ int gpibDevice::write(string m)
 	throw gpibDeviceException( device_name,"Error occurs while writing to GPIB ",
 	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
-	cout << "dev_ibcnt=" << dev_ibcnt <<endl;
-
     return dev_ibcnt;	/* Return saved incnt value */
 }
 
@@ -397,7 +382,7 @@ string gpibDevice::writeRead(string m)
 
     // Make second operation: Read.
 	resetState();
-    memset(rd_buffer,0, RD_BUFFER_SIZE);    
+    memset(rd_buffer,0, (RD_BUFFER_SIZE+1));    
     ibrd(devID,rd_buffer,RD_BUFFER_SIZE);    
     ret = rd_buffer;
     saveState();
@@ -453,19 +438,19 @@ void gpibDevice::sendData(const char *argin, long count)
     if (dev_ibsta & ERR)
     {
         throw gpibDeviceException( device_name, 
-	    	string("Error occurs while writing to GPIB binary data"), 
+	    string("Error occurs while writing to GPIB binary data"), 
             iberrToString(),
-	    	ibstaToString(),
-	    	getiberr(),
-	    	getibsta());
+	    ibstaToString(),
+	    getiberr(),
+	    getibsta());
     } 
 }
 
 char *gpibDevice::receiveData(unsigned short count)
 {
 
-	// allocate buffer for reading data on the GPIB bus
-	char* buffer = new char [count];
+// allocate buffer for reading data on the GPIB bus
+char* buffer = new char [count];
 
 	memset(buffer,0, count);
 
@@ -551,6 +536,38 @@ void gpibDevice::trigger()
     if (dev_ibsta & ERR)
     {
 	throw gpibDeviceException(device_name, "Error occurs while triggering device ",
+	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
+    } 
+}
+
+/**
+ * This method Locks the GPIB BUS. This is done to avoid multiple access cross
+ * read / write problems. It's Mandatory to Free gpib bus with unlock().
+ */
+void gpibDevice::lock()
+{
+    resetState();
+    iblock(devID);  
+    saveState();
+    if (dev_ibsta & ERR)
+    {
+	throw gpibDeviceException(device_name, "Error occurs while locking gpib bus.",
+	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
+    } 
+}
+
+/**
+ * This method unlocks the GPIB BUS. It's Mandatory to Free gpib bus with unlock()
+ * after using lock() method.
+ */
+void gpibDevice::unlock()
+{
+    resetState();
+    ibunlock(devID);  
+    saveState();
+    if (dev_ibsta & ERR)
+    {
+	throw gpibDeviceException(device_name, "Error occurs while unlocking gpib bus.",
 	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
 }
@@ -682,7 +699,8 @@ void gpibBoard::sendIFC()
     saveState();
     if (dev_ibsta & ERR)
     {
-		throw gpibDeviceException( device_name,"Error occurs with sendIFC() command",
+	
+	throw gpibDeviceException( device_name,"Error occurs with sendIFC() command",
 	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
 }

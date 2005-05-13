@@ -10,11 +10,14 @@
 //			
 // project :      TANGO Device Server
 //
-// $Author: xavela $
+// $Author: andy_gotz $
 //
-// $Revision: 1.3 $
+// $Revision: 1.4 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3  2005/03/15 11:03:33  xavela
+// xavier.el :  official version of the Gpib Device Server.
+//
 // Revision 1.7  2005/03/15 10:40:04  elattaoui
 // xavier.el : final version updated. Official version, to avoid local copies.
 //
@@ -68,6 +71,30 @@ namespace GpibDeviceServer
 //
 // Define classes for commands
 //
+class UnLockCmd : public Tango::Command
+{
+public:
+	UnLockCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
+	UnLockCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	~UnLockCmd() {};
+	
+	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+};
+
+
+class LockCmd : public Tango::Command
+{
+public:
+	LockCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
+	LockCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	~LockCmd() {};
+	
+	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+};
+
+
 class ReceiveBinDataCmd : public Tango::Command
 {
 public:

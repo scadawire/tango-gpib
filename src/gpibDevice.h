@@ -8,29 +8,29 @@
 /**
  * Device's default size buffer for read operations.
  */
-const int RD_BUFFER_SIZE = 512;
+#define RD_BUFFER_SIZE 		512
 
 /**
  * Drivers are by default limited to 8 gpibBoard per driver.
  */
-const int MAX_BOARD_INDEX = 7;
+#define MAX_BOARD_INDEX		7
 
 /**
  * Maximum number of device on the GPIB bus. 
  * This is used to limit bus scan with getConnectedDeviceList method.
  */
-const int MAX_DEV_ON_BOARD = 16;
+#define MAX_DEV_ON_BOARD	16
 
 /**
  * Maximum size of string received, when identifying devices connected on
  * the bus.( string return by device in answer to "*IDN?"
  */
-const int MAX_DEV_IDN_STR = 128;
+#define MAX_DEV_IDN_STR		128
 
 /**
  * Device's default gpib board.
  */
-const int GPIB_DEFAULT_BOARD = 0;
+#define GPIB_DEFAULT_BOARD	  0
 
 using namespace std;
 
@@ -53,31 +53,32 @@ class gpibDevice {
 
     public:
 
-	gpibDevice(string dev_name, string boardname);		// class constructor.
-	gpibDevice(string dev_name);						// class constructor.
-	gpibDevice( int add, string boardname= "gpib0");	// class constructor.
+	gpibDevice(string,string);	// class constructor.
+	gpibDevice(string Name);	// class constructor.
+        gpibDevice(int add);		// class constructor.
 		
 	string ibstaToString();		// Get string from ibsta string.	
 	string iberrToString();		// Get string from iberr string. 	
-	int getiberr();				// Get device iberr value.		
-	int getibsta();				// Get device ibsta value.		
-	int getDeviceID();			// Get internal device ID.
+	int getiberr();			// Get device iberr value.		
+	int getibsta();			// Get device ibsta value.		
+	int getDeviceID();		// Get internal device ID.
 	int getDeviceAddr();		// Get device gpib address;
 	unsigned int getibcnt();	// Get device ibsta value.		
 	void clear();				// Clear the gpib device.		
-    void config(int opt,int v);	// Send a ibconfig request.
-	void trigger();				// Trigger the device.		
-	int write(string);			// Send a string to a gpib device. 	
-	string read();				// Read a string from a gpib device. 	
+        void config(int opt,int v);	// Send a ibconfig request.
+	void trigger();			// Trigger the device.		
+	void lock();			// Lock Gpib Bus.
+	void unlock();			// Unlock Gpib Bus.
+	int write(string);		// Send a string to a gpib device. 	
+	string read();			// Read a string from a gpib device. 	
 	string writeRead(string);	// Perform a write/read operation in a row.
 	string read(unsigned long s);	// Read a string from a gpib device. 	
-    void setOffLine();			// Free / rest, set offline gpibDevice taken with ibdev.
-	string getName();			// Return device name. Provided by constructor.
-	void goToLocalMode();		// Device goes to locale mode (opp to remote mode).
+        void setOffLine();		// Free / rest, set offline gpibDevice taken with ibdev.
+	string getName();		// Return device name. Provided by constructor.
+        void goToLocalMode();		// Device goes to locale mode (opp to remote mode).
 	void setTimeOut(int tmo);	// Set Device Time out.
-	void goToRemoteMode();		// Device goes to remote mode (opp to local mode).   
-	short isAlive();			// Check the presence of the device on the bus.
-
+        void goToRemoteMode();		// Device goes to remote mode (opp to local mode).   
+        short isAlive();		// Check the presence of the device on the bus.
 	char*	receiveData(unsigned short count);	// Read binary data from a GPIB device
 	void	sendData(const char *, long count);	// Write binary data on a GPIB device
 	
@@ -145,7 +146,7 @@ class gpibDeviceInfo {
         /**
 	 * This string contains device's answer to "*IDN?"
 	 */
-     string dev_idn;		
+        string 	dev_idn;		
 
         /**
 	 * This int contains device's Primary ADdress.
@@ -155,7 +156,7 @@ class gpibDeviceInfo {
         /**
 	 * This int contains device's Secondary ADdress.
 	 */
-	int dev_sad;		
+	int 	dev_sad;		
 };
 
 
@@ -177,23 +178,23 @@ class gpibBoard : public gpibDevice {
 
     public:
 
-	gpibBoard();				// Class default constructor for gpib0.
+	gpibBoard();			// Class default constructor for gpib0.
 	gpibBoard(string board);	// Constructor for specified board.
-	~gpibBoard();				// Classs destructor.
+	~gpibBoard();			// Classs destructor.
 
 
 	vector<gpibDeviceInfo>& getConnectedDeviceList();
 	// NI-488.2 methods call.
-	void sendIFC();				// Send GPIB Interface Clear 	(Board command).
+	void sendIFC();			// Send GPIB Interface Clear 	(Board command).
 
         // NI-488 methods call.
-	void llo(int dev);			// Send Local Lockout to a dev. (Board command).
-	int cmd(string);			// Send GPIB command message 	(Board command).
-	void clr(int dev);			// Clear specified device.	(Board command).
+	void llo(int dev);		// Send Local Lockout to a dev. (Board command).
+	int cmd(string);		// Send GPIB command message 	(Board command).
+	void clr(int dev);		// Clear specified device.	(Board command).
 	
     private:
 
-	int board_id;				// Board number.
+	int board_id;		// Board number.
 };
 
 #endif

@@ -1,4 +1,4 @@
-static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/main.cpp,v 1.3 2005-03-15 11:03:33 xavela Exp $";
+static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/main.cpp,v 1.4 2005-05-13 15:18:21 andy_gotz Exp $";
 //+=============================================================================
 //
 // file :        main.cpp
@@ -10,11 +10,14 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //
 // project :     TANGO Device Server
 //
-// $Author: xavela $
+// $Author: andy_gotz $
 //
-// $Revision: 1.3 $ $
+// $Revision: 1.4 $ $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3  2005/03/15 11:03:33  xavela
+// xavier.el :  official version of the Gpib Device Server.
+//
 // Revision 1.6  2005/03/15 10:40:04  elattaoui
 // xavier.el : final version updated. Official version, to avoid local copies.
 //
@@ -65,6 +68,8 @@ int main(int argc,char *argv[])
 		// Initialise the device server
 		//----------------------------------------
 		tg = Tango::Util::init(argc,argv);
+
+		tg->set_serial_model(Tango::BY_CLASS);
 
 		// Create the device server singleton 
 		//	which will create everything
