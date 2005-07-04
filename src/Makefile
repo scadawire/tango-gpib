@@ -6,9 +6,9 @@
 #
 # project :     Makefile to generate a Tango server
 #
-# $Author: andy_gotz $
+# $Author: vedder_bruno $
 #
-# $Revision: 1.4 $
+# $Revision: 1.5 $
 #
 # copyleft :    European Synchrotron Radiation Facility
 #               BP 220, Grenoble 38043
@@ -36,8 +36,8 @@ BIN_DIR=$(shell /csadmin/common/scripts/get_os)
 endif
 
 TANGO_HOME   =  /segfs/tango
-INCLUDE_DIRS =  -I$(TANGO_HOME)/include/$(BIN_DIR)	-I.
-LIB_DIRS     =  -L $(TANGO_HOME)/lib/$(BIN_DIR) -L.
+INCLUDE_DIRS =  -I$(TANGO_HOME)/include/$(BIN_DIR)	-I.	-I/usr/local/gpib
+LIB_DIRS     =  -L$(TANGO_HOME)/lib/$(BIN_DIR) -L. 	-L/usr/lib
 
 ifdef _solaris
 CXXFLAGS =  -mt -D_PTHREADS $(INCLUDE_DIRS) -D_solaris
@@ -57,9 +57,9 @@ LFLAGS =  			$(LIB_DIRS)  	\
 endif
 
 ifdef linux
-CXXFLAGS =  -g -D_REENTRANT $(INCLUDE_DIRS) -I../linux/nigpib-linux-0.8.6/
+CXXFLAGS =  -g -D_REENTRANT $(INCLUDE_DIRS) -I/users/goetz/workspace/Gpib/linux/nienet-1.2/
 LFLAGS =  -g $(LIB_DIRS)  		\
-				-L../linux/nigpib-linux-0.8.6 \
+				-L/users/goetz/workspace/Gpib/linux/nienet-1.2/ \
 				-ltango			\
 				-llog4tango		\
 				-lomniORB4 		\
@@ -67,7 +67,7 @@ LFLAGS =  -g $(LIB_DIRS)  		\
 				-lomnithread	\
 				-lCOS4			\
 				-ldl -lpthread \
-				-lgpib
+				-lgpibenet
 endif
 
 

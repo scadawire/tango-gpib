@@ -1,4 +1,4 @@
-static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServerClass.cpp,v 1.4 2005-05-13 15:18:20 andy_gotz Exp $";
+static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServerClass.cpp,v 1.5 2005-07-04 11:34:11 vedder_bruno Exp $";
 //+=============================================================================
 //
 // file :        GpibDeviceServerClass.cpp
@@ -10,11 +10,14 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //
 // project :     TANGO Device Server
 //
-// $Author: andy_gotz $
+// $Author: vedder_bruno $
 //
-// $Revision: 1.4 $
+// $Revision: 1.5 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.4  2005/05/13 15:18:20  andy_gotz
+// Latest version from ESRF. Added serialisation by class to main.cpp.
+//
 // Revision 1.3  2005/03/15 11:03:32  xavela
 // xavier.el :  official version of the Gpib Device Server.
 //
@@ -72,170 +75,6 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 
 namespace GpibDeviceServer
 {
-//+----------------------------------------------------------------------------
-//
-// method : 		UnLockCmd::UnLockCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-UnLockCmd::UnLockCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-UnLockCmd::UnLockCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		UnLockCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool UnLockCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return true;
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		UnLockCmd::execute()
-// 
-// description : 	method to trigger the execution of the command.
-//                PLEASE DO NOT MODIFY this method core without pogo   
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns : The command output data (packed in the Any object)
-//
-//-----------------------------------------------------------------------------
-CORBA::Any *UnLockCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
-{
-
-	cout2 << "UnLockCmd::execute(): arrived" << endl;
-
-	((static_cast<GpibDeviceServer *>(device))->un_lock());
-	return new CORBA::Any();
-}
-
-//+----------------------------------------------------------------------------
-//
-// method : 		LockCmd::LockCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-LockCmd::LockCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-LockCmd::LockCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		LockCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool LockCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return true;
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		LockCmd::execute()
-// 
-// description : 	method to trigger the execution of the command.
-//                PLEASE DO NOT MODIFY this method core without pogo   
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns : The command output data (packed in the Any object)
-//
-//-----------------------------------------------------------------------------
-CORBA::Any *LockCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
-{
-
-	cout2 << "LockCmd::execute(): arrived" << endl;
-
-	((static_cast<GpibDeviceServer *>(device))->lock());
-	return new CORBA::Any();
-}
-
 //+----------------------------------------------------------------------------
 //
 // method : 		ReceiveBinDataCmd::ReceiveBinDataCmd()
@@ -2689,17 +2528,6 @@ void GpibDeviceServerClass::command_factory()
 		"length of the data to receive from the Gpib device",
 		"Array of binary data",
 		Tango::OPERATOR));
-	command_list.push_back(new LockCmd("Lock",
-		Tango::DEV_VOID, Tango::DEV_VOID,
-		"",
-		"",
-		Tango::OPERATOR));
-	command_list.push_back(new UnLockCmd("UnLock",
-		Tango::DEV_VOID, Tango::DEV_VOID,
-		"",
-		"",
-		Tango::OPERATOR));
-
 	//	add polling if any
 	for (unsigned int i=0 ; i<command_list.size(); i++)
 	{

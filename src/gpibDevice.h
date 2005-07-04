@@ -67,8 +67,6 @@ class gpibDevice {
 	void clear();				// Clear the gpib device.		
         void config(int opt,int v);	// Send a ibconfig request.
 	void trigger();			// Trigger the device.		
-	void lock();			// Lock Gpib Bus.
-	void unlock();			// Unlock Gpib Bus.
 	int write(string);		// Send a string to a gpib device. 	
 	string read();			// Read a string from a gpib device. 	
 	string writeRead(string);	// Perform a write/read operation in a row.

@@ -6,11 +6,14 @@
 //
 // project :	gpidDeviceServer
 //
-// $Author: andy_gotz $
+// $Author: vedder_bruno $
 //
-// $Revision: 1.4 $
+// $Revision: 1.5 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.4  2005/05/13 15:18:20  andy_gotz
+// Latest version from ESRF. Added serialisation by class to main.cpp.
+//
 // Revision 1.3  2005/03/15 11:03:32  xavela
 // xavier.el :  official version of the Gpib Device Server.
 //
@@ -65,8 +68,8 @@
 //using namespace Tango;
 
 /**
- * @author	$Author: andy_gotz $
- * @version	$Revision: 1.4 $ $
+ * @author	$Author: vedder_bruno $
+ * @version	$Revision: 1.5 $ $
  */
 
  //	Add your own constants definitions here.
@@ -97,7 +100,7 @@ public :
     gpibDevice *gpib_device;			// Device to be instanciated with open()
     gpibBoard  *board0;				// Gpib controller board.
     bool 	dev_open;			// Flag use to avoid r/w operation on a closed dev.
-
+    
 	//	Here is the Start of the automatic code generation part
 	//-------------------------------------------------------------	
 /**
@@ -409,16 +412,6 @@ public :
  *	@exception DevFailed
  */
 	Tango::DevVarCharArray	*receive_bin_data(Tango::DevUShort);
-/**
- * Lock the gpib bus (you must unlock it afterwards !)
- *	@exception DevFailed
- */
-	void	lock();
-/**
- * Unlock the gpib bus (after a lock)
- *	@exception DevFailed
- */
-	void	un_lock();
 
 /**
  *	Read the device properties from database

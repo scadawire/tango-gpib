@@ -1,18 +1,25 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include "gpibDevice.h"
+
+/* Include for Linux and Solaris. */
 #ifdef _solaris
 #include "ugpib.h"	/* Warning: modified header for C++ compatibility */
 #endif
-#include "gpibDevice.h"
 
+#ifdef linux
+#include "ugpib.h"	/* Warning: modified header for C++ compatibility */
+#endif
 
-using namespace std;
-
+/* Include for Windows. */
 #ifdef WIN32
 #include <windows.h>
 #include "ni488.h"	
 #endif
+
+using namespace std;
+
 /**
  * Standard GPIB errors strings.
  */
@@ -540,37 +547,6 @@ void gpibDevice::trigger()
     } 
 }
 
-/**
- * This method Locks the GPIB BUS. This is done to avoid multiple access cross
- * read / write problems. It's Mandatory to Free gpib bus with unlock().
- */
-void gpibDevice::lock()
-{
-    resetState();
-    iblock(devID);  
-    saveState();
-    if (dev_ibsta & ERR)
-    {
-	throw gpibDeviceException(device_name, "Error occurs while locking gpib bus.",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
-    } 
-}
-
-/**
- * This method unlocks the GPIB BUS. It's Mandatory to Free gpib bus with unlock()
- * after using lock() method.
- */
-void gpibDevice::unlock()
-{
-    resetState();
-    ibunlock(devID);  
-    saveState();
-    if (dev_ibsta & ERR)
-    {
-	throw gpibDeviceException(device_name, "Error occurs while unlocking gpib bus.",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
-    } 
-}
 
 /**
  * Set the device time out value. 
