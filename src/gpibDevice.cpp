@@ -72,6 +72,13 @@ gpibDevice::gpibDevice(string dev_name, string boardname)
     device_name = dev_name;
     if ( (devID & ERR) || (dev_ibsta & ERR) )
     {
+
+        cout << boardname <<":" << device_name << ": An error occurs while executing ibfind()."<< endl;
+        cout << "iberrToString() = " << iberrToString() << endl;
+	cout << "ibstaToString() = " << ibstaToString() << endl;
+	cout << "getiberr() = " << getiberr() << endl;
+	cout << "getibsta() = " << getibsta() << endl;
+	
 	throw gpibDeviceException( device_name, "Error occurs while connecting to GPIB ",
 	                         iberrToString(), ibstaToString(), getiberr(),getibsta());
     }
@@ -81,6 +88,13 @@ gpibDevice::gpibDevice(string dev_name, string boardname)
     saveState();
     if ( (devID & ERR) || (dev_ibsta & ERR) )
     {
+
+        cout << boardname <<":" << device_name << ": An error occurs while execution ibask()."<< endl;
+        cout << "iberrToString() = " << iberrToString() << endl;
+	cout << "ibstaToString() = " << ibstaToString() << endl;
+	cout << "getiberr() = " << getiberr() << endl;
+	cout << "getibsta() = " << getibsta() << endl;
+	
 	throw gpibDeviceException( device_name, "Error occurs while getting device Addr ",
 	                         iberrToString(), ibstaToString(), getiberr(),getibsta());
     }
@@ -316,7 +330,14 @@ void gpibDevice::resetState()
 short gpibDevice::isAlive() {
 
     resetState();
+#ifdef GPIB_PCI
+    // With pci board, ibnl goes to device.
+    ibln( devID , devAddr, 0, &alive);
+#else
+    // With enet board, ibnl goes enet.
     ibln( gpib_board , devAddr, 0, &alive);
+#endif
+
     saveState();
     if (dev_ibsta & ERR)
     {
@@ -377,7 +398,7 @@ string gpibDevice::writeRead(string m)
 {
     string ret;
     
-	resetState();
+    resetState();
     // Make the first Operation: Write.
     ibwrt(devID,(char *) m.c_str(),m.length() );  
     saveState();
@@ -388,11 +409,14 @@ string gpibDevice::writeRead(string m)
     } 
 
     // Make second operation: Read.
-	resetState();
+    resetState();
     memset(rd_buffer,0, (RD_BUFFER_SIZE+1));    
     ibrd(devID,rd_buffer,RD_BUFFER_SIZE);    
-    ret = rd_buffer;
     saveState();
+    
+    // ibcnt contain string length.
+    ret = string(rd_buffer, dev_ibcnt);
+        
     if (dev_ibsta & ERR)
     {
 	throw gpibDeviceException( device_name,"Error occurs while reading to GPIB ",
@@ -412,16 +436,16 @@ string gpibDevice::read(unsigned long size)
 {
     string ret;
     char *tmp_buffer;
-    // TODO size+1
-	resetState();
+
+    resetState();
     tmp_buffer = new char[size+1];
-    memset(tmp_buffer,0, (size+1));  // AJOUT  
+    memset(tmp_buffer,0, (size+1)); 
     ibrd(devID, tmp_buffer, size);    
-//TODO    ret = string(tmp_buffer);
-    ret = tmp_buffer;
-    delete []tmp_buffer; 
-    
     saveState();
+
+    ret = string(tmp_buffer, dev_ibcnt);
+    delete []tmp_buffer; 
+
     if (dev_ibsta & ERR)
     {
 	throw gpibDeviceException( device_name,"Error occurs while reading to GPIB ",

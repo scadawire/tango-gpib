@@ -8,7 +8,7 @@
 #
 # $Author: vedder_bruno $
 #
-# $Revision: 1.5 $
+# $Revision: 1.6 $
 #
 # copyleft :    European Synchrotron Radiation Facility
 #               BP 220, Grenoble 38043
@@ -32,7 +32,8 @@ ifdef linux
 CC = c++
 AR = ar
 #BIN_DIR = suse82
-BIN_DIR=$(shell /csadmin/common/scripts/get_os)
+#BIN_DIR=$(shell /csadmin/common/scripts/get_os)
+BIN_DIR=suse72_gcc32
 endif
 
 TANGO_HOME   =  /segfs/tango
@@ -57,9 +58,10 @@ LFLAGS =  			$(LIB_DIRS)  	\
 endif
 
 ifdef linux
-CXXFLAGS =  -g -D_REENTRANT $(INCLUDE_DIRS) -I/users/goetz/workspace/Gpib/linux/nienet-1.2/
+# -DGPIB_PCI is required when targeting PCI board. Remove it for ENET100 board.
+CXXFLAGS =  -g -D_REENTRANT -DGPIB_PCI $(INCLUDE_DIRS) -I/users/goetz/workspace/Gpib/linux/nigpib-linux-0.8.6/
 LFLAGS =  -g $(LIB_DIRS)  		\
-				-L/users/goetz/workspace/Gpib/linux/nienet-1.2/ \
+				-L/users/goetz/workspace/Gpib/linux/nigpib-linux-0.8.6/ \
 				-ltango			\
 				-llog4tango		\
 				-lomniORB4 		\
@@ -67,7 +69,10 @@ LFLAGS =  -g $(LIB_DIRS)  		\
 				-lomnithread	\
 				-lCOS4			\
 				-ldl -lpthread \
-				-lgpibenet
+				-lgpib
+# To Link with Enet100 library.
+#				-lgpibenet
+
 endif
 
 

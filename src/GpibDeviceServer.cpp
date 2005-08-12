@@ -1,4 +1,4 @@
-static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServer.cpp,v 1.5 2005-07-04 11:34:11 vedder_bruno Exp $";
+static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServer.cpp,v 1.6 2005-08-12 07:56:33 vedder_bruno Exp $";
 //+=============================================================================
 //
 // file :         GpibDeviceServer.cpp
@@ -13,9 +13,16 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //
 // $Author: vedder_bruno $
 //
-// $Revision: 1.5 $
+// $Revision: 1.6 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.5  2005/07/04 11:34:11  vedder_bruno
+// Fixed a memory leak when gpib board/device was not found on server startup.
+// Server no more exits if a gpib board is not found at startup.
+// Remove Lock/Unlock commands cause they are no more needed since serialisation is made by tango.
+// These commands where potentialy dangerous and could cause gpib bus to be locked permanently.
+// Added to CVS repository ugpib.h modified header that can be used with C++ compiler.
+//
 // Revision 1.4  2005/05/13 15:18:20  andy_gotz
 // Latest version from ESRF. Added serialisation by class to main.cpp.
 //
@@ -180,6 +187,15 @@ void GpibDeviceServer::init_device()
 	// Initialise variables to default values
 	//--------------------------------------------
 	get_device_property();
+
+        cout << "Starting Tango GPIB server (Built on " << __DATE__ << " " << __TIME__ << ")." << endl;
+
+        #ifdef GPIB_PCI
+	    cout << "GPIB target is PCI board." << endl;
+	#else
+	    cout << "GPIB target is ENET100 board." << endl;	
+	#endif
+	
 	dev_open = false;	// No gpib device opened.
 	
 	try 
@@ -202,15 +218,13 @@ void GpibDeviceServer::init_device()
 	
 	if (dev_open == false) 
 	{
-		cout << "Trying to open gpib device by name:" << endl;
+		cout << "Trying to open gpib device using name:'" << gpibDeviceName <<"'."<< endl;
 		
 		try 
 		{
 			if(gpib_device != NULL) 
 			{
-				cout << "Before delete." << endl;
 				delete gpib_device;// AJOUT
-				cout << "After delete." << endl;
 				gpib_device = NULL;
 			}
 			
@@ -218,7 +232,13 @@ void GpibDeviceServer::init_device()
 			
 			// Force exception if device not listening (Off)
 			int sb = gpib_device->isAlive();
-			if (sb <=0) throw gpibDeviceException((string)"",(string)"",(string)"",(string)"", 0, 0);
+			
+			if (sb <=0) 
+			{
+			    cout << "gpib_device->isAlive() returns value <= 0 ! " << endl;
+			    throw gpibDeviceException((string)"",(string)"",(string)"",(string)"", 0, 0);
+			}
+			
 			gpib_device->setTimeOut(gpibDeviceTimeOut);	// Set Time Out.
 			dev_open = true;
 			set_state(Tango::ON);
@@ -233,6 +253,11 @@ void GpibDeviceServer::init_device()
 			set_state(Tango::FAULT);
 			set_status("Gpib device is not responding.");
 			gpib_device = NULL;
+
+			cout << "gpibDeviceException from " << f.getDeviceName() << endl;			
+			cout << f.getMessage() << endl;
+			cout << f.getiberrMessage() << endl;
+			cout << f.getibstaMessage() << endl;
 		} 
 		catch (...) 
 		{
@@ -254,7 +279,7 @@ void GpibDeviceServer::get_device_property()
 {
 	//	Initialize your default values here.
 	//------------------------------------------
-	gpibDeviceTimeOut = 12; 		/* 3s predefined value 	*/
+	gpibDeviceTimeOut = 13; 		/* 10s predefined value 	*/
 	gpibDeviceAddress = 0xFF;		/* Unused set to zero	*/
 	gpibDeviceName = "UNSPECIFIED";		/* Unused set to zero	*/
 	gpibDeviceSecondaryAddress = 0;		/* Unused set to zero	*/
