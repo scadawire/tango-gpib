@@ -1,4 +1,4 @@
-static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServer.cpp,v 1.6 2005-08-12 07:56:33 vedder_bruno Exp $";
+static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServer.cpp,v 1.7 2005-10-28 06:46:56 xavela Exp $";
 //+=============================================================================
 //
 // file :         GpibDeviceServer.cpp
@@ -11,11 +11,15 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //
 // project :      TANGO Device Server
 //
-// $Author: vedder_bruno $
+// $Author: xavela $
 //
-// $Revision: 1.6 $
+// $Revision: 1.7 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.6  2005/08/12 07:56:33  vedder_bruno
+// Added support for preliminary Linux PCI board support. Some problems are still encountered
+// when gpib bus is under heavy load.
+//
 // Revision 1.5  2005/07/04 11:34:11  vedder_bruno
 // Fixed a memory leak when gpib board/device was not found on server startup.
 // Server no more exits if a gpib board is not found at startup.
@@ -419,7 +423,7 @@ Tango::DevString GpibDeviceServer::read()
 	//		(chapter : Writing a TANGO DS / Exchanging data)
 	//------------------------------------------------------------
 	Tango::DevString	argout  = new char[RD_BUFFER_SIZE+1]; // AJOUT +1
-	string ret;
+	string ret = "";
 	DEBUG_STREAM << "GpibDeviceServer::read(): entering... !" << endl;
 	
 	//	Add your own code to control device here
@@ -531,7 +535,7 @@ Tango::DevString GpibDeviceServer::read_long_string(Tango::DevLong argin)
 	//		(chapter : Writing a TANGO DS / Exchanging data)
 	//------------------------------------------------------------
 	Tango::DevString	argout  = new char[argin];
-	string ret;
+	string ret = "";
 	DEBUG_STREAM << "GpibDeviceServer::read(): entering... !" << endl;
 	
 	//	Add your own code to control device here
@@ -586,7 +590,7 @@ Tango::DevString GpibDeviceServer::get_name()
 	//		(chapter : Writing a TANGO DS / Exchanging data)
 	//------------------------------------------------------------
 	Tango::DevString	argout  = new char[RD_BUFFER_SIZE+1]; // AJOUT +1
-	string ret;
+	string ret = "";
 	DEBUG_STREAM << "GpibDeviceServer::get_name(): entering... !" << endl;
 	
 	//	Add your own code to control device here
@@ -1331,7 +1335,7 @@ Tango::DevString GpibDeviceServer::write_read(Tango::DevString argin)
 	//		(chapter : Writing a TANGO DS / Exchanging data)
 	//------------------------------------------------------------
 	Tango::DevString	argout  = new char[RD_BUFFER_SIZE+1]; // AJOUT +1
-	string ret;
+	string ret = "";
 	
 	DEBUG_STREAM << "GpibDeviceServer::write_read(): entering... !" << endl;
 	
