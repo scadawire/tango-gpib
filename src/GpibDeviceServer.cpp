@@ -1,4 +1,4 @@
-static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServer.cpp,v 1.7 2005-10-28 06:46:56 xavela Exp $";
+static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServer.cpp,v 1.8 2005-12-06 16:04:08 xavela Exp $";
 //+=============================================================================
 //
 // file :         GpibDeviceServer.cpp
@@ -13,9 +13,12 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //
 // $Author: xavela $
 //
-// $Revision: 1.7 $
+// $Revision: 1.8 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.7  2005/10/28 06:46:56  xavela
+// xavier : minor change
+//
 // Revision 1.6  2005/08/12 07:56:33  vedder_bruno
 // Added support for preliminary Linux PCI board support. Some problems are still encountered
 // when gpib bus is under heavy load.
@@ -220,6 +223,34 @@ void GpibDeviceServer::init_device()
 		gpib_device = NULL;
 	}
 	
+	// Now try to open gpibDevice by address property; gpibDeviceAddress.
+	// To check that there is a real gpib Device behind the driver name,
+	// we send an isAlive command. If answer is <=0 the device is off or
+	// absent.
+	try 
+	{
+		gpib_device = new gpibDevice((int) gpibDeviceAddress);
+		
+		// Force exception if device not listening (Off)
+		int sb = gpib_device->isAlive();
+		if (sb <=0) throw gpibDeviceException((string)"",(string)"",(string)"",(string)"", 0, 0);
+		gpib_device->setTimeOut(gpibDeviceTimeOut);	// Set Time Out.
+		dev_open = true;
+		set_state(Tango::ON);
+		set_status("Gpib device is OK.");
+        cout << "Device found by address ("<< gpibDeviceAddress<<")." << endl;
+	} 
+	catch (gpibDeviceException e) 
+	{
+        cout << "Cant find device by address ("<< gpibDeviceAddress<<")." << endl;
+	}
+	catch (...) 
+	{
+		cout << "UNEXPECTED EXCEPTION !!!" << endl;	
+		exit(-1);
+	}
+	
+	// Can't open device by address, try by name with names property; gpibDeviceName.
 	if (dev_open == false) 
 	{
 		cout << "Trying to open gpib device using name:'" << gpibDeviceName <<"'."<< endl;
