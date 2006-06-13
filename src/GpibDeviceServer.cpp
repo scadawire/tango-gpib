@@ -1,4 +1,4 @@
-static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServer.cpp,v 1.9 2006-01-23 10:04:32 xavela Exp $";
+static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServer.cpp,v 1.10 2006-06-13 14:56:38 fbecheri Exp $";
 //+=============================================================================
 //
 // file :         GpibDeviceServer.cpp
@@ -11,11 +11,15 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //
 // project :      TANGO Device Server
 //
-// $Author: xavela $
+// $Author: fbecheri $
 //
-// $Revision: 1.9 $
+// $Revision: 1.10 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.9  2006/01/23 10:04:32  xavela
+// xavier : CTOR by Gpib address at the end of the
+// init device method.
+//
 // Revision 1.8  2005/12/06 16:04:08  xavela
 // xavier : add a CTOR by address (only) for SOLEIL needed !
 //
@@ -90,45 +94,46 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //	The folowing table gives the correspondance
 //	between commands and method's name.
 //
-//	Command's name	|	Method's name
+//  Command's name            |  Method's name
 //	----------------------------------------
-//	State	|	dev_state()
-//	Status	|	dev_status()
-//	Write	|	write()
-//	Read	|	read()
-//	Close	|	close()
-//	ReadLongString	|	read_long_string()
-//	GetName	|	get_name()
-//	Local	|	local()
-//	Remote	|	remote()
-//	Getiberr	|	getiberr()
-//	Getibsta	|	getibsta()
-//	Getibcnt	|	getibcnt()
-//	Clear	|	clear()
-//	SetTimeOut	|	set_time_out()
-//	BCsendIFC	|	bcsend_ifc()
-//	BCclr	|	bcclr()
-//	GetDeviceID	|	get_device_id()
-//	BCllo	|	bcllo()
-//	BCcmd	|	bccmd()
-//	Open	|	open()
-//	OpenByName	|	open_by_name()
-//	BCGetConnectedDeviceList	|	bcget_connected_device_list()
-//	Trigger	|	trigger()
-//	WriteRead	|	write_read()
-//	Config	|	config()
-//	BCConfig	|	bcconfig()
-//	SendBinData	|	send_bin_data()
-//	ReceiveBinData	|	receive_bin_data()
+//  State                     |  dev_state()
+//  Status                    |  dev_status()
+//  Write                     |  write()
+//  Read                      |  read()
+//  Close                     |  close()
+//  ReadLongString            |  read_long_string()
+//  GetName                   |  get_name()
+//  Local                     |  local()
+//  Remote                    |  remote()
+//  Getiberr                  |  getiberr()
+//  Getibsta                  |  getibsta()
+//  Getibcnt                  |  getibcnt()
+//  Clear                     |  clear()
+//  SetTimeOut                |  set_time_out()
+//  BCsendIFC                 |  bcsend_ifc()
+//  BCclr                     |  bcclr()
+//  GetDeviceID               |  get_device_id()
+//  BCllo                     |  bcllo()
+//  BCcmd                     |  bccmd()
+//  Open                      |  open()
+//  OpenByName                |  open_by_name()
+//  BCGetConnectedDeviceList  |  bcget_connected_device_list()
+//  Trigger                   |  trigger()
+//  WriteRead                 |  write_read()
+//  Config                    |  config()
+//  BCConfig                  |  bcconfig()
+//  SendBinData               |  send_bin_data()
+//  ReceiveBinData            |  receive_bin_data()
 //
 //===================================================================
 
 #include <tango.h>
 #include <GpibDeviceServer.h>
+#include <GpibDeviceServerClass.h>
 #include "gpibDevice.h"
 #include "gpibDeviceException.h"
 
-namespace GpibDeviceServer
+namespace GpibDeviceServer_ns
 {
 	
 //+----------------------------------------------------------------------------
@@ -141,7 +146,7 @@ namespace GpibDeviceServer
 //      - s : Device name 
 //
 //-----------------------------------------------------------------------------
-GpibDeviceServer::GpibDeviceServer(Tango::DeviceClass *cl,string &s):Tango::Device_2Impl(cl,s.c_str())
+GpibDeviceServer::GpibDeviceServer(Tango::DeviceClass *cl,string &s):Tango::Device_3Impl(cl,s.c_str())
 {
 	gpib_device = NULL;	
 	board0 = NULL;
@@ -149,7 +154,7 @@ GpibDeviceServer::GpibDeviceServer(Tango::DeviceClass *cl,string &s):Tango::Devi
 	init_device();
 }
 
-GpibDeviceServer::GpibDeviceServer(Tango::DeviceClass *cl,const char *s):Tango::Device_2Impl(cl,s)
+GpibDeviceServer::GpibDeviceServer(Tango::DeviceClass *cl,const char *s):Tango::Device_3Impl(cl,s)
 {
 	gpib_device = NULL;	
 	board0 = NULL;
@@ -158,7 +163,7 @@ GpibDeviceServer::GpibDeviceServer(Tango::DeviceClass *cl,const char *s):Tango::
 }
 
 GpibDeviceServer::GpibDeviceServer(Tango::DeviceClass *cl,const char *s,const char *d)
-	:Tango::Device_2Impl(cl,s,d)
+	:Tango::Device_3Impl(cl,s,d)
 {
 	gpib_device = NULL;	
 	board0 = NULL;
@@ -227,7 +232,7 @@ void GpibDeviceServer::init_device()
 	}
 	
 	// Can't open device by address, try by name with names property; gpibDeviceName.
-	if (dev_open == false) 
+	if ((dev_open == false) && (gpibDeviceName != "UNSPECIFIED"))
 	{
 		cout << "Trying to open gpib device using name:'" << gpibDeviceName <<"'."<< endl;
 		
@@ -282,7 +287,7 @@ void GpibDeviceServer::init_device()
 		// absent.
 	if (dev_open == false) 
 	{
-		cout << "Trying to open gpib device using name:'" << gpibDeviceName <<"'."<< endl;
+		cout << "Trying to open gpib device using address:'" << gpibDeviceAddress <<"'."<< endl;
 		try 
 		{
 			gpib_device = new gpibDevice((int) gpibDeviceAddress);
@@ -328,27 +333,74 @@ void GpibDeviceServer::get_device_property()
 	
 	//	Read device properties from database.(Automatic code generation)
 	//-------------------------------------------------------------
-	Tango::DbData	data;
-	data.push_back(Tango::DbDatum("GpibDeviceName"));
-	data.push_back(Tango::DbDatum("GpibDeviceAddress"));
-	data.push_back(Tango::DbDatum("GpibDeviceTimeOut"));
-	data.push_back(Tango::DbDatum("GpibDeviceSecondaryAddress"));
-	data.push_back(Tango::DbDatum("GpibBoardName"));
+	if (Tango::Util::instance()->_UseDb==false)
+		return;
+	Tango::DbData	dev_prop;
+	dev_prop.push_back(Tango::DbDatum("GpibDeviceName"));
+	dev_prop.push_back(Tango::DbDatum("GpibDeviceAddress"));
+	dev_prop.push_back(Tango::DbDatum("GpibDeviceTimeOut"));
+	dev_prop.push_back(Tango::DbDatum("GpibDeviceSecondaryAddress"));
+	dev_prop.push_back(Tango::DbDatum("GpibBoardName"));
 
 	//	Call database and extract values
 	//--------------------------------------------
-	get_db_device()->get_property(data);
-	if (data[0].is_empty()==false)	data[0]  >>  gpibDeviceName;
-	if (data[1].is_empty()==false)	data[1]  >>  gpibDeviceAddress;
-	if (data[2].is_empty()==false)	data[2]  >>  gpibDeviceTimeOut;
-	if (data[3].is_empty()==false)	data[3]  >>  gpibDeviceSecondaryAddress;
-	if (data[4].is_empty()==false)	data[4]  >>  gpibBoardName;
+	get_db_device()->get_property(dev_prop);
+	Tango::DbDatum	def_prop, cl_prop;
+	GpibDeviceServerClass	*ds_class =
+		(static_cast<GpibDeviceServerClass *>(get_device_class()));
+	int	i = -1;
+
+	//	Try to initialize GpibDeviceName from class property
+	cl_prop = ds_class->get_class_property(dev_prop[++i].name);
+	if (cl_prop.is_empty()==false)	cl_prop  >>  gpibDeviceName;
+	//	Try to initialize GpibDeviceName from default device value
+	def_prop = ds_class->get_default_device_property(dev_prop[i].name);
+	if (def_prop.is_empty()==false)	def_prop  >>  gpibDeviceName;
+	//	And try to extract GpibDeviceName value from database
+	if (dev_prop[i].is_empty()==false)	dev_prop[i]  >>  gpibDeviceName;
+
+	//	Try to initialize GpibDeviceAddress from class property
+	cl_prop = ds_class->get_class_property(dev_prop[++i].name);
+	if (cl_prop.is_empty()==false)	cl_prop  >>  gpibDeviceAddress;
+	//	Try to initialize GpibDeviceAddress from default device value
+	def_prop = ds_class->get_default_device_property(dev_prop[i].name);
+	if (def_prop.is_empty()==false)	def_prop  >>  gpibDeviceAddress;
+	//	And try to extract GpibDeviceAddress value from database
+	if (dev_prop[i].is_empty()==false)	dev_prop[i]  >>  gpibDeviceAddress;
+
+	//	Try to initialize GpibDeviceTimeOut from class property
+	cl_prop = ds_class->get_class_property(dev_prop[++i].name);
+	if (cl_prop.is_empty()==false)	cl_prop  >>  gpibDeviceTimeOut;
+	//	Try to initialize GpibDeviceTimeOut from default device value
+	def_prop = ds_class->get_default_device_property(dev_prop[i].name);
+	if (def_prop.is_empty()==false)	def_prop  >>  gpibDeviceTimeOut;
+	//	And try to extract GpibDeviceTimeOut value from database
+	if (dev_prop[i].is_empty()==false)	dev_prop[i]  >>  gpibDeviceTimeOut;
+
+	//	Try to initialize GpibDeviceSecondaryAddress from class property
+	cl_prop = ds_class->get_class_property(dev_prop[++i].name);
+	if (cl_prop.is_empty()==false)	cl_prop  >>  gpibDeviceSecondaryAddress;
+	//	Try to initialize GpibDeviceSecondaryAddress from default device value
+	def_prop = ds_class->get_default_device_property(dev_prop[i].name);
+	if (def_prop.is_empty()==false)	def_prop  >>  gpibDeviceSecondaryAddress;
+	//	And try to extract GpibDeviceSecondaryAddress value from database
+	if (dev_prop[i].is_empty()==false)	dev_prop[i]  >>  gpibDeviceSecondaryAddress;
+
+	//	Try to initialize GpibBoardName from class property
+	cl_prop = ds_class->get_class_property(dev_prop[++i].name);
+	if (cl_prop.is_empty()==false)	cl_prop  >>  gpibBoardName;
+	//	Try to initialize GpibBoardName from default device value
+	def_prop = ds_class->get_default_device_property(dev_prop[i].name);
+	if (def_prop.is_empty()==false)	def_prop  >>  gpibBoardName;
+	//	And try to extract GpibBoardName value from database
+	if (dev_prop[i].is_empty()==false)	dev_prop[i]  >>  gpibBoardName;
+
 
 
 	//	End of Automatic code generation
 	//-------------------------------------------------------------
 	
-	if ( (data[0].is_empty() == true) && (data[1].is_empty() == true) )
+	if ( (dev_prop[0].is_empty() == true) && (dev_prop[1].is_empty() == true) )
 	{
 		cout << "Mandatory properties 'gpibDeviceName' and 'gpibDeviceAddress' are not defined" << endl;
 		cout << "in the Database. Please define at least one of them. Exiting." << endl;
@@ -1577,7 +1629,6 @@ void GpibDeviceServer::send_bin_data(const Tango::DevVarCharArray *argin)
 	}
 }
 
-
 //+------------------------------------------------------------------
 /**
  *	method:	GpibDeviceServer::receive_bin_data
@@ -1592,7 +1643,7 @@ void GpibDeviceServer::send_bin_data(const Tango::DevVarCharArray *argin)
  *
  */
 //+------------------------------------------------------------------
-Tango::DevVarCharArray *GpibDeviceServer::receive_bin_data(Tango::DevUShort argin)
+Tango::DevVarCharArray *GpibDeviceServer::receive_bin_data(Tango::DevLong argin)
 {
 	//	POGO has generated a method core with argout allocation.
 	//	If you would like to use a static reference without copying,
@@ -1600,7 +1651,7 @@ Tango::DevVarCharArray *GpibDeviceServer::receive_bin_data(Tango::DevUShort argi
 	//		(chapter : Writing a TANGO DS / Exchanging data)
 	//------------------------------------------------------------
 	DEBUG_STREAM << "GpibDeviceServer::receive_bin_data(): entering... !" << endl;
-	
+		
 	//	Add your own code to control device here
 	if ( !dev_open )	// Trying to read a non-open device. Generate exception.
 	{
@@ -1613,7 +1664,7 @@ Tango::DevVarCharArray *GpibDeviceServer::receive_bin_data(Tango::DevUShort argi
 			);
 	}
 	
-	short nb_data = argin;
+	long nb_data = argin;
 	char	*response;
 	
 	try {
@@ -1623,7 +1674,7 @@ Tango::DevVarCharArray *GpibDeviceServer::receive_bin_data(Tango::DevUShort argi
 	} 
 	catch (gpibDeviceException e) {
 		
-   	    DEBUG_STREAM << "receive_bin_data command error on " << e.getDeviceName() << endl;	
+	    DEBUG_STREAM << "receive_bin_data command error on " << e.getDeviceName() << endl;	
 		//if (argout) delete argout;
 		Tango::Except::throw_exception(
 			(const char*)(("gpibDeviceException on " + e.getDeviceName() ).c_str()),
@@ -1639,7 +1690,7 @@ Tango::DevVarCharArray *GpibDeviceServer::receive_bin_data(Tango::DevUShort argi
 	// check if memory is allocated
 	if (argout == NULL)
 	{
-   	    DEBUG_STREAM << "receive_bin_data can not allocate memory." << endl;	
+	    DEBUG_STREAM << "receive_bin_data can not allocate memory." << endl;	
 		Tango::Except::throw_exception(
 			(const char*) "gpibDeviceException.",
 			(const char*) "memory not allocated.",
@@ -1648,13 +1699,12 @@ Tango::DevVarCharArray *GpibDeviceServer::receive_bin_data(Tango::DevUShort argi
 			);
 	}
 	
-	for (int i = 0; i < nb_data; i++)
+	for (long i = 0; i < nb_data; i++)
 		(*argout)[i] = response[i];
 	
 	delete [] response;
 	
 	return argout;
 }
-
 
 }	//	namespace

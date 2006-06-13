@@ -6,9 +6,9 @@
 #
 # project :     Makefile to generate a Tango server
 #
-# $Author: vedder_bruno $
+# $Author: fbecheri $
 #
-# $Revision: 1.6 $
+# $Revision: 1.7 $
 #
 # copyleft :    European Synchrotron Radiation Facility
 #               BP 220, Grenoble 38043
@@ -59,7 +59,8 @@ endif
 
 ifdef linux
 # -DGPIB_PCI is required when targeting PCI board. Remove it for ENET100 board.
-CXXFLAGS =  -g -D_REENTRANT -DGPIB_PCI $(INCLUDE_DIRS) -I/users/goetz/workspace/Gpib/linux/nigpib-linux-0.8.6/
+# -DNI4882 is required for NI4882 driver.
+CXXFLAGS =  -g -D_REENTRANT -DGPIB_PCI -DNI4882 $(INCLUDE_DIRS) -I/users/goetz/workspace/Gpib/linux/nigpib-linux-0.8.6/
 LFLAGS =  -g $(LIB_DIRS)  		\
 				-L/users/goetz/workspace/Gpib/linux/nigpib-linux-0.8.6/ \
 				-ltango			\

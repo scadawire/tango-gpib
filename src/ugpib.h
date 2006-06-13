@@ -11,6 +11,10 @@
 #include <sys/param.h>
 #include <sys/types.h>
 
+#ifdef NI4882
+#define	ibfind ibfindA
+#endif
+
 extern	int	ibsta;
 extern  int	iberr;
 extern	unsigned int	ibcnt;
@@ -282,7 +286,11 @@ extern int ibdev(int boardid, int padval, int sadval, int tmoval, int eotval, in
 extern int ibdma(int handle, int v);
 extern int ibeos(int handle, int v);
 extern int ibeot(int handle, int v);
+#ifdef NI4882
+extern int ibfindA(char *bdname);
+#else
 extern int ibfind(char *bdname);
+#endif
 extern int ibgts(int handle, int v);
 extern int ibist(int handle, int v);
 extern int iblines(int handle, short *lines);

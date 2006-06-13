@@ -10,11 +10,14 @@
 //			
 // project :      TANGO Device Server
 //
-// $Author: andy_gotz $
+// $Author: fbecheri $
 //
-// $Revision: 1.4 $
+// $Revision: 1.5 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.4  2005/05/13 15:18:20  andy_gotz
+// Latest version from ESRF. Added serialisation by class to main.cpp.
+//
 // Revision 1.3  2005/03/15 11:03:33  xavela
 // xavier.el :  official version of the Gpib Device Server.
 //
@@ -64,346 +67,637 @@
 #define _GPIBDEVICESERVERCLASS_H
 
 #include <tango.h>
+#include <GpibDeviceServer.h>
 
 
-namespace GpibDeviceServer
+namespace GpibDeviceServer_ns
 {
-//
-// Define classes for commands
-//
-class UnLockCmd : public Tango::Command
-{
-public:
-	UnLockCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	UnLockCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
-	~UnLockCmd() {};
-	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
-};
-
-
-class LockCmd : public Tango::Command
-{
-public:
-	LockCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	LockCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
-	~LockCmd() {};
-	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
-};
-
-
+//=====================================
+//	Define classes for attributes
+//=====================================
+//=========================================
+//	Define classes for commands
+//=========================================
 class ReceiveBinDataCmd : public Tango::Command
 {
 public:
-	ReceiveBinDataCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	ReceiveBinDataCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	ReceiveBinDataCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	ReceiveBinDataCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~ReceiveBinDataCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_ReceiveBinData_allowed(any);}
 };
+
 
 
 class SendBinDataCmd : public Tango::Command
 {
 public:
-	SendBinDataCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	SendBinDataCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	SendBinDataCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	SendBinDataCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~SendBinDataCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_SendBinData_allowed(any);}
 };
+
 
 
 class BCConfigCmd : public Tango::Command
 {
 public:
-	BCConfigCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	BCConfigCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	BCConfigCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	BCConfigCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~BCConfigCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_BCConfig_allowed(any);}
 };
+
 
 
 class ConfigCmd : public Tango::Command
 {
 public:
-	ConfigCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	ConfigCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	ConfigCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	ConfigCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~ConfigCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_Config_allowed(any);}
 };
+
 
 
 class WriteReadCmd : public Tango::Command
 {
 public:
-	WriteReadCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	WriteReadCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	WriteReadCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	WriteReadCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~WriteReadCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_WriteRead_allowed(any);}
 };
+
 
 
 class TriggerCmd : public Tango::Command
 {
 public:
-	TriggerCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	TriggerCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	TriggerCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	TriggerCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~TriggerCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_Trigger_allowed(any);}
 };
+
 
 
 class BCGetConnectedDeviceListCmd : public Tango::Command
 {
 public:
-	BCGetConnectedDeviceListCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	BCGetConnectedDeviceListCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	BCGetConnectedDeviceListCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	BCGetConnectedDeviceListCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~BCGetConnectedDeviceListCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_BCGetConnectedDeviceList_allowed(any);}
 };
+
 
 
 class OpenByNameCmd : public Tango::Command
 {
 public:
-	OpenByNameCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	OpenByNameCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	OpenByNameCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	OpenByNameCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~OpenByNameCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_OpenByName_allowed(any);}
 };
+
 
 
 class OpenCmd : public Tango::Command
 {
 public:
-	OpenCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	OpenCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	OpenCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	OpenCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~OpenCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_Open_allowed(any);}
 };
+
 
 
 class BCcmdCmd : public Tango::Command
 {
 public:
-	BCcmdCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	BCcmdCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	BCcmdCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	BCcmdCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~BCcmdCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_BCcmd_allowed(any);}
 };
+
 
 
 class BClloCmd : public Tango::Command
 {
 public:
-	BClloCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	BClloCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	BClloCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	BClloCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~BClloCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_BCllo_allowed(any);}
 };
+
 
 
 class GetDeviceIDCmd : public Tango::Command
 {
 public:
-	GetDeviceIDCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	GetDeviceIDCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	GetDeviceIDCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	GetDeviceIDCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~GetDeviceIDCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_GetDeviceID_allowed(any);}
 };
+
 
 
 class BCclrCmd : public Tango::Command
 {
 public:
-	BCclrCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	BCclrCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	BCclrCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	BCclrCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~BCclrCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_BCclr_allowed(any);}
 };
+
 
 
 class BCsendIFCCmd : public Tango::Command
 {
 public:
-	BCsendIFCCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	BCsendIFCCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	BCsendIFCCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	BCsendIFCCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~BCsendIFCCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_BCsendIFC_allowed(any);}
 };
+
 
 
 class SetTimeOutCmd : public Tango::Command
 {
 public:
-	SetTimeOutCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	SetTimeOutCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	SetTimeOutCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	SetTimeOutCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~SetTimeOutCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_SetTimeOut_allowed(any);}
 };
+
 
 
 class ClearCmd : public Tango::Command
 {
 public:
-	ClearCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	ClearCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	ClearCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	ClearCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~ClearCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_Clear_allowed(any);}
 };
+
 
 
 class GetibcntCmd : public Tango::Command
 {
 public:
-	GetibcntCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	GetibcntCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	GetibcntCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	GetibcntCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~GetibcntCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_Getibcnt_allowed(any);}
 };
+
 
 
 class GetibstaCmd : public Tango::Command
 {
 public:
-	GetibstaCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	GetibstaCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	GetibstaCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	GetibstaCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~GetibstaCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_Getibsta_allowed(any);}
 };
+
 
 
 class GetiberrCmd : public Tango::Command
 {
 public:
-	GetiberrCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	GetiberrCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	GetiberrCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	GetiberrCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~GetiberrCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_Getiberr_allowed(any);}
 };
+
 
 
 class RemoteCmd : public Tango::Command
 {
 public:
-	RemoteCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	RemoteCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	RemoteCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	RemoteCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~RemoteCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_Remote_allowed(any);}
 };
+
 
 
 class LocalCmd : public Tango::Command
 {
 public:
-	LocalCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	LocalCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	LocalCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	LocalCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~LocalCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_Local_allowed(any);}
 };
+
 
 
 class GetNameCmd : public Tango::Command
 {
 public:
-	GetNameCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	GetNameCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	GetNameCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	GetNameCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~GetNameCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_GetName_allowed(any);}
 };
+
 
 
 class ReadLongStringCmd : public Tango::Command
 {
 public:
-	ReadLongStringCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	ReadLongStringCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	ReadLongStringCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	ReadLongStringCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~ReadLongStringCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_ReadLongString_allowed(any);}
 };
+
 
 
 class CloseCmd : public Tango::Command
 {
 public:
-	CloseCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	CloseCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	CloseCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	CloseCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~CloseCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_Close_allowed(any);}
 };
+
 
 
 class ReadCmd : public Tango::Command
 {
 public:
-	ReadCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	ReadCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	ReadCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	ReadCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~ReadCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_Read_allowed(any);}
 };
+
 
 
 class WriteCmd : public Tango::Command
 {
 public:
-	WriteCmd(const char *,Tango::CmdArgType, Tango::CmdArgType,const char *,const char *, Tango::DispLevel);
-	WriteCmd(const char *,Tango::CmdArgType, Tango::CmdArgType);
+	WriteCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	WriteCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
 	~WriteCmd() {};
 	
-	virtual bool is_allowed (Tango::DeviceImpl *, const CORBA::Any &);
-	virtual CORBA::Any *execute (Tango::DeviceImpl *, const CORBA::Any &);
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_Write_allowed(any);}
 };
 
 
@@ -420,23 +714,30 @@ public:
 //------------------------------------
 
 public:
+	Tango::DbData	cl_prop;
+	Tango::DbData	cl_def_prop;
+	Tango::DbData	dev_def_prop;
 
 //	Method prototypes
 	static GpibDeviceServerClass *init(const char *);
 	static GpibDeviceServerClass *instance();
 	~GpibDeviceServerClass();
+	Tango::DbDatum	get_class_property(string &);
+	Tango::DbDatum	get_default_device_property(string &);
+	Tango::DbDatum	get_default_class_property(string &);
 	
 protected:
 	GpibDeviceServerClass(string &);
 	static GpibDeviceServerClass *_instance;
 	void command_factory();
 	void write_class_property();
+	void set_default_property();
 
 private:
 	void device_factory(const Tango::DevVarStringArray *);
 };
 
 
-}	//	namespace GpibDeviceServer
+}	//	namespace GpibDeviceServer_ns
 
 #endif // _GPIBDEVICESERVERCLASS_H

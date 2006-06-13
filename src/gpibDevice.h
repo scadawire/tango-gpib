@@ -77,7 +77,7 @@ class gpibDevice {
 	void setTimeOut(int tmo);	// Set Device Time out.
         void goToRemoteMode();		// Device goes to remote mode (opp to local mode).   
         short isAlive();		// Check the presence of the device on the bus.
-	char*	receiveData(unsigned short count);	// Read binary data from a GPIB device
+	char*	receiveData(long count);	// Read binary data from a GPIB device
 	void	sendData(const char *, long count);	// Write binary data on a GPIB device
 	
     protected:
@@ -113,7 +113,7 @@ class gpibDevice {
 	/**
 	 * Internal read operation buffer.
 	 */
-	char rd_buffer[RD_BUFFER_SIZE];	 
+	char rd_buffer[RD_BUFFER_SIZE+1];	 
 
 	/**
 	 * gpib device name passed in constructor, or built on address e.g dev4

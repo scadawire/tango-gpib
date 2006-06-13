@@ -1,4 +1,4 @@
-static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/ClassFactory.cpp,v 1.3 2005-03-15 11:03:32 xavela Exp $";
+static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/ClassFactory.cpp,v 1.4 2006-06-13 14:56:38 fbecheri Exp $";
 //+=============================================================================
 //
 // file :        ClassFactory.cpp
@@ -10,11 +10,14 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //
 // project :     TANGO Device Server
 //
-// $Author: xavela $
+// $Author: fbecheri $
 //
-// $Revision: 1.3 $
+// $Revision: 1.4 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3  2005/03/15 11:03:32  xavela
+// xavier.el :  official version of the Gpib Device Server.
+//
 // Revision 1.6  2005/03/15 10:40:04  elattaoui
 // xavier.el : final version updated. Official version, to avoid local copies.
 //
@@ -60,13 +63,13 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 /**
  *	Create GpibDeviceServerClass singleton and store it in DServer object.
  *
- * @author	$Author: xavela $
- * @version	$Revision: 1.3 $ $
+ * @author	$Author: fbecheri $
+ * @version	$Revision: 1.4 $ $
  */
 
 void Tango::DServer::class_factory()
 {
 
-	add_class(GpibDeviceServer::GpibDeviceServerClass::init("GpibDeviceServer"));
+	add_class(GpibDeviceServer_ns::GpibDeviceServerClass::init("GpibDeviceServer"));
 
 }

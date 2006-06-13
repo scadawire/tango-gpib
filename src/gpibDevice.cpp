@@ -477,7 +477,7 @@ void gpibDevice::sendData(const char *argin, long count)
     } 
 }
 
-char *gpibDevice::receiveData(unsigned short count)
+char *gpibDevice::receiveData(long count)
 {
 
 // allocate buffer for reading data on the GPIB bus
@@ -581,7 +581,7 @@ void gpibDevice::trigger()
 void gpibDevice::setTimeOut(int v)
 {
     resetState();
-    if ( (v >= 0) && (v <= 15) )
+    if ( (v >= 0) && (v <= 17) )
     {
         ibtmo(devID,v);  
         saveState();

@@ -1,4 +1,6 @@
-static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServerClass.cpp,v 1.5 2005-07-04 11:34:11 vedder_bruno Exp $";
+static const char *TagName   = "$Name: not supported by cvs2svn $";
+static const char *HttpServer= "http://www.esrf.fr/computing/cs/tango/tango_doc/ds_doc/";
+static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServerClass.cpp,v 1.6 2006-06-13 14:56:38 fbecheri Exp $";
 //+=============================================================================
 //
 // file :        GpibDeviceServerClass.cpp
@@ -10,11 +12,18 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //
 // project :     TANGO Device Server
 //
-// $Author: vedder_bruno $
+// $Author: fbecheri $
 //
-// $Revision: 1.5 $
+// $Revision: 1.6 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.5  2005/07/04 11:34:11  vedder_bruno
+// Fixed a memory leak when gpib board/device was not found on server startup.
+// Server no more exits if a gpib board is not found at startup.
+// Remove Lock/Unlock commands cause they are no more needed since serialisation is made by tango.
+// These commands where potentialy dangerous and could cause gpib bus to be locked permanently.
+// Added to CVS repository ugpib.h modified header that can be used with C++ compiler.
+//
 // Revision 1.4  2005/05/13 15:18:20  andy_gotz
 // Latest version from ESRF. Added serialisation by class to main.cpp.
 //
@@ -73,68 +82,8 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 #include <GpibDeviceServerClass.h>
 
 
-namespace GpibDeviceServer
+namespace GpibDeviceServer_ns
 {
-//+----------------------------------------------------------------------------
-//
-// method : 		ReceiveBinDataCmd::ReceiveBinDataCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-ReceiveBinDataCmd::ReceiveBinDataCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-ReceiveBinDataCmd::ReceiveBinDataCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		ReceiveBinDataCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool ReceiveBinDataCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return true;
-}
-
-
-
-
 //+----------------------------------------------------------------------------
 //
 // method : 		ReceiveBinDataCmd::execute()
@@ -151,73 +100,13 @@ bool ReceiveBinDataCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &
 CORBA::Any *ReceiveBinDataCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "ReceiveBinDataCmd::execute(): arrived" << endl;
 
-	Tango::DevUShort	argin;
+	Tango::DevLong	argin;
 	extract(in_any, argin);
 
 	return insert((static_cast<GpibDeviceServer *>(device))->receive_bin_data(argin));
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		SendBinDataCmd::SendBinDataCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-SendBinDataCmd::SendBinDataCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-SendBinDataCmd::SendBinDataCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		SendBinDataCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool SendBinDataCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -235,7 +124,7 @@ bool SendBinDataCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_
 CORBA::Any *SendBinDataCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "SendBinDataCmd::execute(): arrived" << endl;
 
 	const Tango::DevVarCharArray	*argin;
 	extract(in_any, argin);
@@ -243,71 +132,6 @@ CORBA::Any *SendBinDataCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &
 	((static_cast<GpibDeviceServer *>(device))->send_bin_data(argin));
 	return new CORBA::Any();
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		BCConfigCmd::BCConfigCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-BCConfigCmd::BCConfigCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-BCConfigCmd::BCConfigCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		BCConfigCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool BCConfigCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-	if (device->get_state() == Tango::MOVING  ||
-		device->get_state() == Tango::FAULT)
-	{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return false;
-	}
-	return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -325,7 +149,7 @@ bool BCConfigCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any
 CORBA::Any *BCConfigCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "BCConfigCmd::execute(): arrived" << endl;
 
 	const Tango::DevVarLongArray	*argin;
 	extract(in_any, argin);
@@ -333,70 +157,6 @@ CORBA::Any *BCConfigCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_
 	((static_cast<GpibDeviceServer *>(device))->bcconfig(argin));
 	return new CORBA::Any();
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		ConfigCmd::ConfigCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-ConfigCmd::ConfigCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-ConfigCmd::ConfigCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		ConfigCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool ConfigCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-	if (device->get_state() == Tango::MOVING  ||
-		device->get_state() == Tango::FAULT)
-	{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return false;
-	}
-	return true;
-}
-
-
 
 
 //+----------------------------------------------------------------------------
@@ -426,66 +186,6 @@ CORBA::Any *ConfigCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_an
 
 //+----------------------------------------------------------------------------
 //
-// method : 		WriteReadCmd::WriteReadCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-WriteReadCmd::WriteReadCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-WriteReadCmd::WriteReadCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		WriteReadCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool WriteReadCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return true;
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
 // method : 		WriteReadCmd::execute()
 // 
 // description : 	method to trigger the execution of the command.
@@ -500,78 +200,13 @@ bool WriteReadCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_an
 CORBA::Any *WriteReadCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "WriteReadCmd::execute(): arrived" << endl;
 
 	Tango::DevString	argin;
 	extract(in_any, argin);
 
 	return insert((static_cast<GpibDeviceServer *>(device))->write_read(argin));
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		TriggerCmd::TriggerCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-TriggerCmd::TriggerCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-TriggerCmd::TriggerCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		TriggerCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool TriggerCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-	if (device->get_state() == Tango::MOVING  ||
-		device->get_state() == Tango::FAULT)
-	{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return false;
-	}
-	return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -589,71 +224,11 @@ bool TriggerCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
 CORBA::Any *TriggerCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "TriggerCmd::execute(): arrived" << endl;
 
 	((static_cast<GpibDeviceServer *>(device))->trigger());
 	return new CORBA::Any();
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		BCGetConnectedDeviceListCmd::BCGetConnectedDeviceListCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-BCGetConnectedDeviceListCmd::BCGetConnectedDeviceListCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-BCGetConnectedDeviceListCmd::BCGetConnectedDeviceListCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		BCGetConnectedDeviceListCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool BCGetConnectedDeviceListCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -671,74 +246,10 @@ bool BCGetConnectedDeviceListCmd::is_allowed(Tango::DeviceImpl *device, const CO
 CORBA::Any *BCGetConnectedDeviceListCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "BCGetConnectedDeviceListCmd::execute(): arrived" << endl;
 
 	return insert((static_cast<GpibDeviceServer *>(device))->bcget_connected_device_list());
 }
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		OpenByNameCmd::OpenByNameCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-OpenByNameCmd::OpenByNameCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-OpenByNameCmd::OpenByNameCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		OpenByNameCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool OpenByNameCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-	if (device->get_state() == Tango::MOVING)
-	{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return false;
-	}
-	return true;
-}
-
-
 
 
 //+----------------------------------------------------------------------------
@@ -757,75 +268,11 @@ bool OpenByNameCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_a
 CORBA::Any *OpenByNameCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "OpenByNameCmd::execute(): arrived" << endl;
 
 	((static_cast<GpibDeviceServer *>(device))->open_by_name());
 	return new CORBA::Any();
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		OpenCmd::OpenCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-OpenCmd::OpenCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-OpenCmd::OpenCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		OpenCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool OpenCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-	if (device->get_state() == Tango::MOVING)
-	{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return false;
-	}
-	return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -843,71 +290,11 @@ bool OpenCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
 CORBA::Any *OpenCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "OpenCmd::execute(): arrived" << endl;
 
 	((static_cast<GpibDeviceServer *>(device))->open());
 	return new CORBA::Any();
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		BCcmdCmd::BCcmdCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-BCcmdCmd::BCcmdCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-BCcmdCmd::BCcmdCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		BCcmdCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool BCcmdCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -925,7 +312,7 @@ bool BCcmdCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
 CORBA::Any *BCcmdCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "BCcmdCmd::execute(): arrived" << endl;
 
 	Tango::DevString	argin;
 	extract(in_any, argin);
@@ -933,66 +320,6 @@ CORBA::Any *BCcmdCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any
 	((static_cast<GpibDeviceServer *>(device))->bccmd(argin));
 	return new CORBA::Any();
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		BClloCmd::BClloCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-BClloCmd::BClloCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-BClloCmd::BClloCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		BClloCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool BClloCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -1010,7 +337,7 @@ bool BClloCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
 CORBA::Any *BClloCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "BClloCmd::execute(): arrived" << endl;
 
 	Tango::DevLong	argin;
 	extract(in_any, argin);
@@ -1018,71 +345,6 @@ CORBA::Any *BClloCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any
 	((static_cast<GpibDeviceServer *>(device))->bcllo(argin));
 	return new CORBA::Any();
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		GetDeviceIDCmd::GetDeviceIDCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-GetDeviceIDCmd::GetDeviceIDCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-GetDeviceIDCmd::GetDeviceIDCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		GetDeviceIDCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool GetDeviceIDCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-	if (device->get_state() == Tango::MOVING  ||
-		device->get_state() == Tango::FAULT)
-	{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return false;
-	}
-	return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -1100,70 +362,10 @@ bool GetDeviceIDCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_
 CORBA::Any *GetDeviceIDCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "GetDeviceIDCmd::execute(): arrived" << endl;
 
 	return insert((static_cast<GpibDeviceServer *>(device))->get_device_id());
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		BCclrCmd::BCclrCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-BCclrCmd::BCclrCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-BCclrCmd::BCclrCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		BCclrCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool BCclrCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -1181,7 +383,7 @@ bool BCclrCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
 CORBA::Any *BCclrCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "BCclrCmd::execute(): arrived" << endl;
 
 	Tango::DevLong	argin;
 	extract(in_any, argin);
@@ -1189,66 +391,6 @@ CORBA::Any *BCclrCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any
 	((static_cast<GpibDeviceServer *>(device))->bcclr(argin));
 	return new CORBA::Any();
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		BCsendIFCCmd::BCsendIFCCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-BCsendIFCCmd::BCsendIFCCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-BCsendIFCCmd::BCsendIFCCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		BCsendIFCCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool BCsendIFCCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -1266,76 +408,11 @@ bool BCsendIFCCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_an
 CORBA::Any *BCsendIFCCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "BCsendIFCCmd::execute(): arrived" << endl;
 
 	((static_cast<GpibDeviceServer *>(device))->bcsend_ifc());
 	return new CORBA::Any();
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		SetTimeOutCmd::SetTimeOutCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-SetTimeOutCmd::SetTimeOutCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-SetTimeOutCmd::SetTimeOutCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		SetTimeOutCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool SetTimeOutCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-	if (device->get_state() == Tango::MOVING  ||
-		device->get_state() == Tango::FAULT)
-	{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return false;
-	}
-	return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -1353,7 +430,7 @@ bool SetTimeOutCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_a
 CORBA::Any *SetTimeOutCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "SetTimeOutCmd::execute(): arrived" << endl;
 
 	Tango::DevShort	argin;
 	extract(in_any, argin);
@@ -1361,71 +438,6 @@ CORBA::Any *SetTimeOutCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &i
 	((static_cast<GpibDeviceServer *>(device))->set_time_out(argin));
 	return new CORBA::Any();
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		ClearCmd::ClearCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-ClearCmd::ClearCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-ClearCmd::ClearCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		ClearCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool ClearCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-	if (device->get_state() == Tango::MOVING  ||
-		device->get_state() == Tango::FAULT)
-	{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return false;
-	}
-	return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -1443,76 +455,11 @@ bool ClearCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
 CORBA::Any *ClearCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "ClearCmd::execute(): arrived" << endl;
 
 	((static_cast<GpibDeviceServer *>(device))->clear());
 	return new CORBA::Any();
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		GetibcntCmd::GetibcntCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-GetibcntCmd::GetibcntCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-GetibcntCmd::GetibcntCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		GetibcntCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool GetibcntCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-	if (device->get_state() == Tango::MOVING  ||
-		device->get_state() == Tango::FAULT)
-	{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return false;
-	}
-	return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -1530,75 +477,10 @@ bool GetibcntCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any
 CORBA::Any *GetibcntCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "GetibcntCmd::execute(): arrived" << endl;
 
 	return insert((static_cast<GpibDeviceServer *>(device))->getibcnt());
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		GetibstaCmd::GetibstaCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-GetibstaCmd::GetibstaCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-GetibstaCmd::GetibstaCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		GetibstaCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool GetibstaCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-	if (device->get_state() == Tango::MOVING  ||
-		device->get_state() == Tango::FAULT)
-	{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return false;
-	}
-	return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -1616,75 +498,10 @@ bool GetibstaCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any
 CORBA::Any *GetibstaCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "GetibstaCmd::execute(): arrived" << endl;
 
 	return insert((static_cast<GpibDeviceServer *>(device))->getibsta());
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		GetiberrCmd::GetiberrCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-GetiberrCmd::GetiberrCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-GetiberrCmd::GetiberrCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		GetiberrCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool GetiberrCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-	if (device->get_state() == Tango::MOVING  ||
-		device->get_state() == Tango::FAULT)
-	{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return false;
-	}
-	return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -1702,75 +519,10 @@ bool GetiberrCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any
 CORBA::Any *GetiberrCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "GetiberrCmd::execute(): arrived" << endl;
 
 	return insert((static_cast<GpibDeviceServer *>(device))->getiberr());
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		RemoteCmd::RemoteCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-RemoteCmd::RemoteCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-RemoteCmd::RemoteCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		RemoteCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool RemoteCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-	if (device->get_state() == Tango::MOVING  ||
-		device->get_state() == Tango::FAULT)
-	{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return false;
-	}
-	return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -1788,76 +540,11 @@ bool RemoteCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
 CORBA::Any *RemoteCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "RemoteCmd::execute(): arrived" << endl;
 
 	((static_cast<GpibDeviceServer *>(device))->remote());
 	return new CORBA::Any();
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		LocalCmd::LocalCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-LocalCmd::LocalCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-LocalCmd::LocalCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		LocalCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool LocalCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-	if (device->get_state() == Tango::MOVING  ||
-		device->get_state() == Tango::FAULT)
-	{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return false;
-	}
-	return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -1875,76 +562,11 @@ bool LocalCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
 CORBA::Any *LocalCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "LocalCmd::execute(): arrived" << endl;
 
 	((static_cast<GpibDeviceServer *>(device))->local());
 	return new CORBA::Any();
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		GetNameCmd::GetNameCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-GetNameCmd::GetNameCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-GetNameCmd::GetNameCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		GetNameCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool GetNameCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-	if (device->get_state() == Tango::MOVING  ||
-		device->get_state() == Tango::FAULT)
-	{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return false;
-	}
-	return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -1962,75 +584,10 @@ bool GetNameCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
 CORBA::Any *GetNameCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "GetNameCmd::execute(): arrived" << endl;
 
 	return insert((static_cast<GpibDeviceServer *>(device))->get_name());
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		ReadLongStringCmd::ReadLongStringCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-ReadLongStringCmd::ReadLongStringCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-ReadLongStringCmd::ReadLongStringCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		ReadLongStringCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool ReadLongStringCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-	if (device->get_state() == Tango::MOVING  ||
-		device->get_state() == Tango::FAULT)
-	{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return false;
-	}
-	return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -2048,77 +605,13 @@ bool ReadLongStringCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &
 CORBA::Any *ReadLongStringCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "ReadLongStringCmd::execute(): arrived" << endl;
 
 	Tango::DevLong	argin;
 	extract(in_any, argin);
 
 	return insert((static_cast<GpibDeviceServer *>(device))->read_long_string(argin));
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		CloseCmd::CloseCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-CloseCmd::CloseCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-CloseCmd::CloseCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		CloseCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool CloseCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-	if (device->get_state() == Tango::MOVING)
-	{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return false;
-	}
-	return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -2136,70 +629,11 @@ bool CloseCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
 CORBA::Any *CloseCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "CloseCmd::execute(): arrived" << endl;
 
 	((static_cast<GpibDeviceServer *>(device))->close());
 	return new CORBA::Any();
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		ReadCmd::ReadCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-ReadCmd::ReadCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-ReadCmd::ReadCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		ReadCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool ReadCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return true;
-}
-
-
 
 
 //+----------------------------------------------------------------------------
@@ -2218,75 +652,10 @@ bool ReadCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
 CORBA::Any *ReadCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "ReadCmd::execute(): arrived" << endl;
 
 	return insert((static_cast<GpibDeviceServer *>(device))->read());
 }
-
-//+----------------------------------------------------------------------------
-//
-// method : 		WriteCmd::WriteCmd()
-// 
-// description : 	constructor for the command of the GpibDeviceServer.
-//
-// In : - name : The command name
-//		- in : The input parameter type
-//		- out : The output parameter type
-//		- in_desc : The input parameter description
-//		- out_desc : The output parameter description
-//
-//-----------------------------------------------------------------------------
-WriteCmd::WriteCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out,
-								const char		*in_desc,
-				       			const char		*out_desc,
-								Tango::DispLevel level)
-:Command(name,in,out,in_desc,out_desc, level)
-{
-}
-//
-//	Constructor without in/out parameters description
-//
-WriteCmd::WriteCmd(	const char		*name,
-								Tango::CmdArgType in,
-				       			Tango::CmdArgType out)
-:Command(name,in,out)
-{
-}
-
-
-
-
-//+----------------------------------------------------------------------------
-//
-// method : 		WriteCmd::is_allowed()
-// 
-// description : 	method to test whether command is allowed or not in this
-//			state. In this case, the command is allowed only if
-//			the device is in ON state
-//
-// in : - device : The device on which the command must be excuted
-//		- in_any : The command input data
-//
-// returns :	boolean - true == is allowed , false == not allowed
-//
-//-----------------------------------------------------------------------------
-bool WriteCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
-{
-	if (device->get_state() == Tango::MOVING  ||
-		device->get_state() == Tango::FAULT)
-	{
-		//	End of Generated Code
-
-		//	Re-Start of Generated Code
-		return false;
-	}
-	return true;
-}
-
-
-
 
 //+----------------------------------------------------------------------------
 //
@@ -2304,7 +673,7 @@ bool WriteCmd::is_allowed(Tango::DeviceImpl *device, const CORBA::Any &in_any)
 CORBA::Any *WriteCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
 {
 
-	cout2 << "DevTemplateCmd::execute(): arrived" << endl;
+	cout2 << "WriteCmd::execute(): arrived" << endl;
 
 	Tango::DevString	argin;
 	extract(in_any, argin);
@@ -2312,7 +681,6 @@ CORBA::Any *WriteCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any
 	((static_cast<GpibDeviceServer *>(device))->write(argin));
 	return new CORBA::Any();
 }
-
 
 //
 //----------------------------------------------------------------
@@ -2334,6 +702,7 @@ GpibDeviceServerClass::GpibDeviceServerClass(string &s):DeviceClass(s)
 {
 
 	cout2 << "Entering GpibDeviceServerClass constructor" << endl;
+	set_default_property();
 	write_class_property();
 	
 	cout2 << "Leaving GpibDeviceServerClass constructor" << endl;
@@ -2524,16 +893,65 @@ void GpibDeviceServerClass::command_factory()
 		"",
 		Tango::OPERATOR));
 	command_list.push_back(new ReceiveBinDataCmd("ReceiveBinData",
-		Tango::DEV_USHORT, Tango::DEVVAR_CHARARRAY,
+		Tango::DEV_LONG, Tango::DEVVAR_CHARARRAY,
 		"length of the data to receive from the Gpib device",
 		"Array of binary data",
 		Tango::OPERATOR));
+
 	//	add polling if any
 	for (unsigned int i=0 ; i<command_list.size(); i++)
 	{
 	}
 }
 
+//+----------------------------------------------------------------------------
+//
+// method : 		GpibDeviceServerClass::get_class_property
+// 
+// description : 	Get the class property for specified name.
+//
+// in :		string	name : The property name
+//
+//+----------------------------------------------------------------------------
+Tango::DbDatum GpibDeviceServerClass::get_class_property(string &prop_name)
+{
+	for (int i=0 ; i<cl_prop.size() ; i++)
+		if (cl_prop[i].name == prop_name)
+			return cl_prop[i];
+	//	if not found, return  an empty DbDatum
+	return Tango::DbDatum(prop_name);
+}
+//+----------------------------------------------------------------------------
+//
+// method : 		GpibDeviceServerClass::get_default_device_property()
+// 
+// description : 	Return the default value for device property.
+//
+//-----------------------------------------------------------------------------
+Tango::DbDatum GpibDeviceServerClass::get_default_device_property(string &prop_name)
+{
+	for (int i=0 ; i<dev_def_prop.size() ; i++)
+		if (dev_def_prop[i].name == prop_name)
+			return dev_def_prop[i];
+	//	if not found, return  an empty DbDatum
+	return Tango::DbDatum(prop_name);
+}
+
+//+----------------------------------------------------------------------------
+//
+// method : 		GpibDeviceServerClass::get_default_class_property()
+// 
+// description : 	Return the default value for class property.
+//
+//-----------------------------------------------------------------------------
+Tango::DbDatum GpibDeviceServerClass::get_default_class_property(string &prop_name)
+{
+	for (int i=0 ; i<cl_def_prop.size() ; i++)
+		if (cl_def_prop[i].name == prop_name)
+			return cl_def_prop[i];
+	//	if not found, return  an empty DbDatum
+	return Tango::DbDatum(prop_name);
+}
 //+----------------------------------------------------------------------------
 //
 // method : 		GpibDeviceServerClass::device_factory
@@ -2546,23 +964,115 @@ void GpibDeviceServerClass::command_factory()
 //-----------------------------------------------------------------------------
 void GpibDeviceServerClass::device_factory(const Tango::DevVarStringArray *devlist_ptr)
 {
-	
+
+	//	Create all devices.(Automatic code generation)
+	//-------------------------------------------------------------
 	for (unsigned long i=0 ; i < devlist_ptr->length() ; i++)
 	{
 		cout4 << "Device name : " << (*devlist_ptr)[i].in() << endl;
 						
-		// Create device and add it into the device list
+		// Create devices and add it into the device list
 		//----------------------------------------------------
 		device_list.push_back(new GpibDeviceServer(this, (*devlist_ptr)[i]));							 
 
 		// Export device to the outside world
-		// Check before id database used.
+		// Check before if database used.
 		//---------------------------------------------
-		if (Tango::Util::_UseDb == true)
+		if ((Tango::Util::_UseDb == true) && (Tango::Util::_FileDb == false))
 			export_device(device_list.back());
 		else
 			export_device(device_list.back(), (*devlist_ptr)[i]);
 	}
+	//	End of Automatic code generation
+	//-------------------------------------------------------------
+
+}
+
+
+//+----------------------------------------------------------------------------
+//
+// method : 	GpibDeviceServerClass::set_default_property
+// 
+// description: Set default property (class and device) for wizard.
+//              For each property, add to wizard property name and description
+//              If default value has been set, add it to wizard property and
+//              store it in a DbDatum.
+//
+//-----------------------------------------------------------------------------
+void GpibDeviceServerClass::set_default_property()
+{
+	string	prop_name;
+	string	prop_desc;
+	string	prop_def;
+
+	vector<string>	vect_data;
+	//	Set Default Class Properties
+	//	Set Default Device Properties
+	prop_name = "GpibDeviceName";
+	prop_desc = "This property is used to connect gpib device by name.";
+	prop_def  = "";
+	if (prop_def.length()>0)
+	{
+		Tango::DbDatum	data(prop_name);
+		data << vect_data ;
+		dev_def_prop.push_back(data);
+		add_wiz_dev_prop(prop_name, prop_desc,  prop_def);
+	}
+	else
+		add_wiz_dev_prop(prop_name, prop_desc);
+
+	prop_name = "GpibDeviceAddress";
+	prop_desc = "This is gpidDevice address.";
+	prop_def  = "";
+	if (prop_def.length()>0)
+	{
+		Tango::DbDatum	data(prop_name);
+		data << vect_data ;
+		dev_def_prop.push_back(data);
+		add_wiz_dev_prop(prop_name, prop_desc,  prop_def);
+	}
+	else
+		add_wiz_dev_prop(prop_name, prop_desc);
+
+	prop_name = "GpibDeviceTimeOut";
+	prop_desc = "This is the GPIB device Time Out. Warning this is a predefined value:\n\n#define TNONE 0 Infinite timeout (disabled)\n#define T10us 1 Timeout of 10 us (ideal)\n#define T30us 2 Timeout of 30 us (ideal)\n#define T100us 3 Timeout of 100 us (ideal)\n#define T300us 4 Timeout of 300 us (ideal)\n#define T1ms 5 Timeout of 1 ms (ideal)\n#define T3ms 6 Timeout of 3 ms (ideal)\n#define T10ms 7 Timeout of 10 ms (ideal)\n#define T30ms 8 Timeout of 30 ms (ideal)\n#define T100ms 9 Timeout of 100 ms (ideal)\n#define T300ms 10 Timeout of 300 ms (ideal)\n#define T1s 11 Timeout of 1 s (ideal)\n#define T3s 12 Timeout of 3 s (ideal)\n#define T10s 13 Timeout of 10 s (ideal)\n#define T30s 14 Timeout of 30 s (ideal)\n#define T100s 15 Timeout of 100 s (ideal)\n#define T300s 16 Timeout of 300 s (ideal)\n#define T1000s 17 Timeout of 1000 s (maximum";
+	prop_def  = "";
+	if (prop_def.length()>0)
+	{
+		Tango::DbDatum	data(prop_name);
+		data << vect_data ;
+		dev_def_prop.push_back(data);
+		add_wiz_dev_prop(prop_name, prop_desc,  prop_def);
+	}
+	else
+		add_wiz_dev_prop(prop_name, prop_desc);
+
+	prop_name = "GpibDeviceSecondaryAddress";
+	prop_desc = "Second address of the gpib device.";
+	prop_def  = "";
+	if (prop_def.length()>0)
+	{
+		Tango::DbDatum	data(prop_name);
+		data << vect_data ;
+		dev_def_prop.push_back(data);
+		add_wiz_dev_prop(prop_name, prop_desc,  prop_def);
+	}
+	else
+		add_wiz_dev_prop(prop_name, prop_desc);
+
+	prop_name = "GpibBoardName";
+	prop_desc = "This is the name of the board where gpib device is plugged.\ne.g \"gpib1\"";
+	prop_def  = "";
+	if (prop_def.length()>0)
+	{
+		Tango::DbDatum	data(prop_name);
+		data << vect_data ;
+		dev_def_prop.push_back(data);
+		add_wiz_dev_prop(prop_name, prop_desc,  prop_def);
+	}
+	else
+		add_wiz_dev_prop(prop_name, prop_desc);
+
 }
 //+----------------------------------------------------------------------------
 //
@@ -2578,19 +1088,71 @@ void GpibDeviceServerClass::write_class_property()
 	if (Tango::Util::_UseDb == false)
 		return;
 
-	//	Prepeare DbDatum
-	//--------------------------------------------
+	Tango::DbData	data;
+	string	classname = get_name();
+	string	header;
+	string::size_type	start, end;
+
+	//	Put title
 	Tango::DbDatum	title("ProjectTitle");
 	string	str_title("gpidDeviceServer");
 	title << str_title;
-
-	Tango::DbDatum	description("Description");
-	string	str_desc("This server is a generic gpib interface.");
-	description << str_desc;
-	
-	Tango::DbData	data;
 	data.push_back(title);
+
+	//	Put Description
+	Tango::DbDatum	description("Description");
+	vector<string>	str_desc;
+	str_desc.push_back("This server is a generic gpib interface.");
+	description << str_desc;
 	data.push_back(description);
+		
+	//	put cvs location
+	string	rcsId(RcsId);
+	string	filename(classname);
+	start = rcsId.find("/");
+	if (start!=string::npos)
+	{
+		filename += "Class.cpp";
+		end   = rcsId.find(filename);
+		if (end>start)
+		{
+			string	strloc = rcsId.substr(start, end-start);
+			//	Check if specific repository
+			start = strloc.find("/cvsroot/");
+			if (start!=string::npos && start>0)
+			{
+				string	repository = strloc.substr(0, start);
+				if (repository.find("/segfs/")!=string::npos)
+					strloc = "ESRF:" + strloc.substr(start, strloc.length()-start);
+			}
+			Tango::DbDatum	cvs_loc("cvs_location");
+			cvs_loc << strloc;
+			data.push_back(cvs_loc);
+		}
+	}
+
+	//	Get CVS tag revision
+	string	tagname(TagName);
+	header = "$Name: ";
+	start = header.length();
+	string	endstr(" $");
+	end   = tagname.find(endstr);
+	if (end>start)
+	{
+		string	strtag = tagname.substr(start, end-start);
+		Tango::DbDatum	cvs_tag("cvs_tag");
+		cvs_tag << strtag;
+		data.push_back(cvs_tag);
+	}
+
+	//	Get URL location
+	string	httpServ(HttpServer);
+	if (httpServ.length()>0)
+	{
+		Tango::DbDatum	db_doc_url("doc_url");
+		db_doc_url << httpServ;
+		data.push_back(db_doc_url);
+	}
 
 	//	Call database and and values
 	//--------------------------------------------

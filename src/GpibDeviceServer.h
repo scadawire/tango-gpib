@@ -6,11 +6,18 @@
 //
 // project :	gpidDeviceServer
 //
-// $Author: vedder_bruno $
+// $Author: fbecheri $
 //
-// $Revision: 1.5 $
+// $Revision: 1.6 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.5  2005/07/04 11:34:11  vedder_bruno
+// Fixed a memory leak when gpib board/device was not found on server startup.
+// Server no more exits if a gpib board is not found at startup.
+// Remove Lock/Unlock commands cause they are no more needed since serialisation is made by tango.
+// These commands where potentialy dangerous and could cause gpib bus to be locked permanently.
+// Added to CVS repository ugpib.h modified header that can be used with C++ compiler.
+//
 // Revision 1.4  2005/05/13 15:18:20  andy_gotz
 // Latest version from ESRF. Added serialisation by class to main.cpp.
 //
@@ -68,15 +75,15 @@
 //using namespace Tango;
 
 /**
- * @author	$Author: vedder_bruno $
- * @version	$Revision: 1.5 $ $
+ * @author	$Author: fbecheri $
+ * @version	$Revision: 1.6 $ $
  */
 
  //	Add your own constants definitions here.
  //-----------------------------------------------
 
 
-namespace GpibDeviceServer
+namespace GpibDeviceServer_ns
 {
 
 /**
@@ -92,7 +99,7 @@ namespace GpibDeviceServer
  */
 
 
-class GpibDeviceServer: public Tango::Device_2Impl
+class GpibDeviceServer: public Tango::Device_3Impl
 {
 public :
 	//	Add your own data members here
@@ -166,14 +173,14 @@ public :
  *	@param cl	Class.
  *	@param s 	Device Name
  */
-	GpibDeviceServer(Tango::DeviceClass *,string &);
+	GpibDeviceServer(Tango::DeviceClass *cl,string &s);
 /**
  * Constructs a newly allocated Command object.
  *
  *	@param cl	Class.
  *	@param s 	Device Name
  */
-	GpibDeviceServer(Tango::DeviceClass *,const char *);
+	GpibDeviceServer(Tango::DeviceClass *cl,const char *s);
 /**
  * Constructs a newly allocated Command object.
  *
@@ -181,7 +188,7 @@ public :
  *	@param s 	Device name
  *	@param d	Device description.
  */
-	GpibDeviceServer(Tango::DeviceClass *,const char *,const char *);
+	GpibDeviceServer(Tango::DeviceClass *cl,const char *s,const char *d);
 //@}
 
 /**@name Destructor
@@ -216,6 +223,110 @@ public :
  */
 
 //@{
+/**
+ *	Execution allowed for Write command.
+ */
+	virtual bool is_Write_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for Read command.
+ */
+	virtual bool is_Read_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for Close command.
+ */
+	virtual bool is_Close_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for ReadLongString command.
+ */
+	virtual bool is_ReadLongString_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for GetName command.
+ */
+	virtual bool is_GetName_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for Local command.
+ */
+	virtual bool is_Local_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for Remote command.
+ */
+	virtual bool is_Remote_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for Getiberr command.
+ */
+	virtual bool is_Getiberr_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for Getibsta command.
+ */
+	virtual bool is_Getibsta_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for Getibcnt command.
+ */
+	virtual bool is_Getibcnt_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for Clear command.
+ */
+	virtual bool is_Clear_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for SetTimeOut command.
+ */
+	virtual bool is_SetTimeOut_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for BCsendIFC command.
+ */
+	virtual bool is_BCsendIFC_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for BCclr command.
+ */
+	virtual bool is_BCclr_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for GetDeviceID command.
+ */
+	virtual bool is_GetDeviceID_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for BCllo command.
+ */
+	virtual bool is_BCllo_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for BCcmd command.
+ */
+	virtual bool is_BCcmd_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for Open command.
+ */
+	virtual bool is_Open_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for OpenByName command.
+ */
+	virtual bool is_OpenByName_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for BCGetConnectedDeviceList command.
+ */
+	virtual bool is_BCGetConnectedDeviceList_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for Trigger command.
+ */
+	virtual bool is_Trigger_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for WriteRead command.
+ */
+	virtual bool is_WriteRead_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for Config command.
+ */
+	virtual bool is_Config_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for BCConfig command.
+ */
+	virtual bool is_BCConfig_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for SendBinData command.
+ */
+	virtual bool is_SendBinData_allowed(const CORBA::Any &any);
+/**
+ *	Execution allowed for ReceiveBinData command.
+ */
+	virtual bool is_ReceiveBinData_allowed(const CORBA::Any &any);
 /**
  * This command send a string to the device. Throws devFailed on error.
  *	@param	argin	String to send to the device
@@ -411,7 +522,7 @@ public :
  *	@return	Array of binary data
  *	@exception DevFailed
  */
-	Tango::DevVarCharArray	*receive_bin_data(Tango::DevUShort);
+	Tango::DevVarCharArray	*receive_bin_data(Tango::DevLong);
 
 /**
  *	Read the device properties from database
