@@ -34,6 +34,14 @@
 
 using namespace std;
 
+enum GpibProbeMethod
+{
+	GPIB_PROBE_UNKNOWN = 0,
+	GPIB_PROBE_DEVICE = 1,
+	GPIB_PROBE_BOARD = 2
+};
+
+
 /** 
  * This class is designed to handle gpibDevices. It's point of
  * view is very device oriented: For example, setting device in remote mode, is
@@ -49,13 +57,14 @@ using namespace std;
  * operations made on gpibDevice or gpibBoard can potentialy throw a 
  * gpibDeviceException.<link ref ="code example" href "code-example.txt"> 
  */
-class gpibDevice {
+class gpibDevice 
+{
 
-    public:
+public:
 
 	gpibDevice(string,string);	// class constructor.
 	gpibDevice(string Name);	// class constructor.
-        gpibDevice(int add);		// class constructor.
+   	gpibDevice(int add);		// class constructor.
 		
 	string ibstaToString();		// Get string from ibsta string.	
 	string iberrToString();		// Get string from iberr string. 	
@@ -65,22 +74,22 @@ class gpibDevice {
 	int getDeviceAddr();		// Get device gpib address;
 	unsigned int getibcnt();	// Get device ibsta value.		
 	void clear();				// Clear the gpib device.		
-        void config(int opt,int v);	// Send a ibconfig request.
+    void config(int opt,int v);	// Send a ibconfig request.
 	void trigger();			// Trigger the device.		
 	int write(string);		// Send a string to a gpib device. 	
 	string read();			// Read a string from a gpib device. 	
 	string writeRead(string);	// Perform a write/read operation in a row.
 	string read(unsigned long s);	// Read a string from a gpib device. 	
-        void setOffLine();		// Free / rest, set offline gpibDevice taken with ibdev.
+    void setOffLine();		// Free / rest, set offline gpibDevice taken with ibdev.
 	string getName();		// Return device name. Provided by constructor.
-        void goToLocalMode();		// Device goes to locale mode (opp to remote mode).
+    void goToLocalMode();		// Device goes to locale mode (opp to remote mode).
 	void setTimeOut(int tmo);	// Set Device Time out.
-        void goToRemoteMode();		// Device goes to remote mode (opp to local mode).   
-        short isAlive();		// Check the presence of the device on the bus.
+    void goToRemoteMode();		// Device goes to remote mode (opp to local mode).   
+    short isAlive();		// Check the presence of the device on the bus.
 	char*	receiveData(long count);	// Read binary data from a GPIB device
 	void	sendData(const char *, long count);	// Write binary data on a GPIB device
 	
-    protected:
+protected:
 
 	void saveState();		// save iberr/ibstat in dev_ibsta/dev_iberr. 
 	void resetState();		// reset iberr/ibstat in dev_ibsta/dev_iberr.
@@ -125,12 +134,14 @@ class gpibDevice {
 	 */
 	short alive;
 	 
-    private:
+private:
 
+	 void findIsAliveMethod();
 	/**
 	 * This is the gpib board, where our device is connected to.
 	 */
         int gpib_board;	
+	GpibProbeMethod	probe_method; 
 };
 
 /**
@@ -172,14 +183,14 @@ static vector<gpibDeviceInfo> inf;
  * seen as gpibDevice with more feature that's why this class inherits from
  * gpibDevice and adds methods to handle board features. 
  */
-class gpibBoard : public gpibDevice {
+class gpibBoard : public gpibDevice 
+{
 
-    public:
+public:
 
 	gpibBoard();			// Class default constructor for gpib0.
 	gpibBoard(string board);	// Constructor for specified board.
 	~gpibBoard();			// Classs destructor.
-
 
 	vector<gpibDeviceInfo>& getConnectedDeviceList();
 	// NI-488.2 methods call.
@@ -190,7 +201,7 @@ class gpibBoard : public gpibDevice {
 	int cmd(string);		// Send GPIB command message 	(Board command).
 	void clr(int dev);		// Clear specified device.	(Board command).
 	
-    private:
+private:
 
 	int board_id;		// Board number.
 };

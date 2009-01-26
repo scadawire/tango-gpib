@@ -9,7 +9,7 @@
 #endif
 
 #ifdef linux
-#include "ugpib.h"	/* Warning: modified header for C++ compatibility */
+#include "ni488.h"
 #endif
 
 /* Include for Windows. */
@@ -64,7 +64,8 @@ gpibDevice::gpibDevice(string dev_name, string boardname)
 {
     int pad;    
     string ss;
-    
+    probe_method = GPIB_PROBE_UNKNOWN;
+	
     resetState();
     // Get Device by name.
     devID = ibfind((char *) dev_name.c_str() );
@@ -72,14 +73,12 @@ gpibDevice::gpibDevice(string dev_name, string boardname)
     device_name = dev_name;
     if ( (devID & ERR) || (dev_ibsta & ERR) )
     {
-
-        cout << boardname <<":" << device_name << ": An error occurs while executing ibfind()."<< endl;
-        cout << "iberrToString() = " << iberrToString() << endl;
-	cout << "ibstaToString() = " << ibstaToString() << endl;
-	cout << "getiberr() = " << getiberr() << endl;
-	cout << "getibsta() = " << getibsta() << endl;
-	
-	throw gpibDeviceException( device_name, "Error occurs while connecting to GPIB ",
+	    cout << boardname <<":" << device_name << ": An error occurs while executing ibfind()."<< endl;
+	    cout << "iberrToString() = " << iberrToString() << endl;
+		cout << "ibstaToString() = " << ibstaToString() << endl;
+		cout << "getiberr() = " << getiberr() << endl;
+		cout << "getibsta() = " << getibsta() << endl;
+		throw gpibDeviceException( device_name, "Error occurs while connecting to GPIB ",
 	                         iberrToString(), ibstaToString(), getiberr(),getibsta());
     }
   
@@ -91,11 +90,11 @@ gpibDevice::gpibDevice(string dev_name, string boardname)
 
         cout << boardname <<":" << device_name << ": An error occurs while execution ibask()."<< endl;
         cout << "iberrToString() = " << iberrToString() << endl;
-	cout << "ibstaToString() = " << ibstaToString() << endl;
-	cout << "getiberr() = " << getiberr() << endl;
-	cout << "getibsta() = " << getibsta() << endl;
+		cout << "ibstaToString() = " << ibstaToString() << endl;
+		cout << "getiberr() = " << getiberr() << endl;
+		cout << "getibsta() = " << getibsta() << endl;
 	
-	throw gpibDeviceException( device_name, "Error occurs while getting device Addr ",
+		throw gpibDeviceException( device_name, "Error occurs while getting device Addr ",
 	                         iberrToString(), ibstaToString(), getiberr(),getibsta());
     }
     devAddr = pad;
@@ -106,10 +105,10 @@ gpibDevice::gpibDevice(string dev_name, string boardname)
     
     if ((gpib_board < 0) || (gpib_board> MAX_BOARD_INDEX) )
     {
-	throw gpibDeviceException( device_name, "Error occurs while getting device Addr ",
-	                         "Board index is out of range.",
-				  "Value must be between 0 and 7",
-				  getiberr(),getibsta());
+		throw gpibDeviceException( device_name, "Error occurs while getting device Addr ",
+	        	              "Board index is out of range.",
+							  "Value must be between 0 and 7",
+							  getiberr(),getibsta());
     }
 };
 
@@ -125,7 +124,9 @@ gpibDevice::gpibDevice(string dev_name, string boardname)
 gpibDevice::gpibDevice(string dev_name) 
 {
     int pad;    
+	probe_method = GPIB_PROBE_UNKNOWN;		
     resetState();
+
     // Get Device by name.
     devID = ibfind((char *) dev_name.c_str() );
     saveState();
@@ -150,21 +151,9 @@ gpibDevice::gpibDevice(string dev_name)
 
 /**
  * This is the second constructor for the gpibDevice class.
- * The parameter passed to this constructor, is the device address 
- * configured on your device hardware. 
- * Warning: using this constructor assumes that the device name defined in
- * the gpib driver is the original one. Default gpib device name are
- * composed like this:  dev + address ->  hardware at address 4 will use
- * dev4 as defaultname. If you have change this name with ibconf, you will
- * have to use the previous constructor.
- * VERY IMPORTANT NOTES:
- * If method doesn't throw exception this not necessarly mean that the gpib
- * device exists. This mean that the name devX exists in the gpib driver !
- * This constructor assumes your gpib device to be on board 0 !
- * This constructor SHOULD NOT BE USE ANYMORE since it simply concat dev to
- * the address, to build the device name (store in driver). Instead of doing
- * gpibDevice( 4 ) use gpibDevice ("dev4") or, for THE BEST SOLUTION:
- * gpibDevice( "dev4", "gpib0").
+ * It opens a device by its Primary address.
+ *
+ * See the default parameters for ibdev !
  *
  */
 gpibDevice::gpibDevice(int add) 
@@ -172,14 +161,14 @@ gpibDevice::gpibDevice(int add)
     ostringstream os;
     os << add;
     int pad;        
+	probe_method = GPIB_PROBE_UNKNOWN;
 	resetState();
-    // Get Device by name + addr.
-    device_name = "dev" + os.str();
-    devID = ibfind( (char *) device_name.c_str() );
+
+	devID = ibdev(0, add, 0, 13, 1, 0);
     saveState();
     if ( (devID & ERR) || (dev_ibsta & ERR) )
     {
-	throw gpibDeviceException( device_name, "Error occurs while connecting to GPIB ",
+		throw gpibDeviceException( device_name, "Error occurs while connecting to GPIB ",
 	                         iberrToString(), ibstaToString(), getiberr(),getibsta());
     }
   
@@ -188,7 +177,7 @@ gpibDevice::gpibDevice(int add)
     saveState();
     if ( (devID & ERR) || (dev_ibsta & ERR) )
     {
-	throw gpibDeviceException( device_name, "Error occurs while getting device Addr ",
+		throw gpibDeviceException( device_name, "Error occurs while getting device Addr ",
 	                         iberrToString(), ibstaToString(), getiberr(),getibsta());
     }
     devAddr = pad;
@@ -323,25 +312,71 @@ void gpibDevice::resetState()
 }
 
 /**
+ * This method tries to determine how to probe the device dynamically.
+ */
+void gpibDevice::findIsAliveMethod()
+{
+    probe_method = GPIB_PROBE_UNKNOWN;
+	
+	// With pci board, ibnl goes to device.
+	ibln( devID , devAddr, 0, &alive);
+	if ( (!(dev_ibsta & ERR)) && (alive != 0))
+	{
+		probe_method = GPIB_PROBE_DEVICE;
+		cout << "IsAlive method used : On Device." << endl;
+		return;
+	}
+
+    // With enet board, ibnl goes enet.
+    ibln( gpib_board , devAddr, 0, &alive);
+	if ( (!(dev_ibsta & ERR)) && (alive != 0))
+	{
+		probe_method = GPIB_PROBE_BOARD;
+		cout << "IsAlive method used : On Board." << endl;
+		return;
+	}
+	
+	cout << "Unable to determine IsAlive method to use. is your hardware turned on ?." << endl;
+}
+
+
+/**
  * This method test if the device is alive on the bus.
  * If returns 0: nobody there, else ok.
  */
-
 short gpibDevice::isAlive() {
 
     resetState();
-#ifdef GPIB_PCI
-    // With pci board, ibnl goes to device.
-    ibln( devID , devAddr, 0, &alive);
-#else
-    // With enet board, ibnl goes enet.
-    ibln( gpib_board , devAddr, 0, &alive);
-#endif
+
+	if (probe_method == GPIB_PROBE_UNKNOWN)
+	{
+		findIsAliveMethod();
+	}
+
+	switch(probe_method)
+	{
+		case GPIB_PROBE_DEVICE:
+		    // With pci board, ibnl goes to device.
+		    ibln( devID , devAddr, 0, &alive);
+		break;
+
+		case GPIB_PROBE_BOARD:
+		    // With enet board, ibnl goes enet.
+		    ibln( gpib_board , devAddr, 0, &alive);
+		break;
+
+		case GPIB_PROBE_UNKNOWN:
+		break;
+
+		default:
+		break;		
+	}
 
     saveState();
-    if (dev_ibsta & ERR)
+
+    if (dev_ibsta & ERR || probe_method == GPIB_PROBE_UNKNOWN)
     {
-	throw gpibDeviceException( device_name,"Device not answering to ibln (isAlive() method).",
+		throw gpibDeviceException( device_name,"Device not answering to ibln (isAlive() method).",
 	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
     return alive;

@@ -6,9 +6,9 @@
 #
 # project :     Makefile to generate a Tango server
 #
-# $Author: fbecheri $
+# $Author: vedder_bruno $
 #
-# $Revision: 1.7 $
+# $Revision: 1.8 $
 #
 # copyleft :    European Synchrotron Radiation Facility
 #               BP 220, Grenoble 38043
@@ -31,14 +31,15 @@ endif
 ifdef linux
 CC = c++
 AR = ar
-#BIN_DIR = suse82
-#BIN_DIR=$(shell /csadmin/common/scripts/get_os)
-BIN_DIR=suse72_gcc32
+BIN_DIR=$(shell /csadmin/common/scripts/get_os)
+GPIB_INC = /segfs/linux/drivers/nigpib/NI-GPIB-2.5.1f0/include/
+GPIB_LIB = /segfs/linux/drivers/nigpib/NI-GPIB-2.5.1f0/lib/
 endif
 
-TANGO_HOME   =  /segfs/tango
-INCLUDE_DIRS =  -I$(TANGO_HOME)/include/$(BIN_DIR)	-I.	-I/usr/local/gpib
-LIB_DIRS     =  -L$(TANGO_HOME)/lib/$(BIN_DIR) -L. 	-L/usr/lib
+
+TANGO_HOME   =  /segfs/tango/release
+INCLUDE_DIRS =  -I$(TANGO_HOME)/$(BIN_DIR)/include/	-I.	-I$(GPIB_INC)
+LIB_DIRS     =  -L$(TANGO_HOME)/$(BIN_DIR)/lib/ -L.	-L$(GPIB_LIB)
 
 ifdef _solaris
 CXXFLAGS =  -mt -D_PTHREADS $(INCLUDE_DIRS) -D_solaris
@@ -58,11 +59,9 @@ LFLAGS =  			$(LIB_DIRS)  	\
 endif
 
 ifdef linux
-# -DGPIB_PCI is required when targeting PCI board. Remove it for ENET100 board.
 # -DNI4882 is required for NI4882 driver.
-CXXFLAGS =  -g -D_REENTRANT -DGPIB_PCI -DNI4882 $(INCLUDE_DIRS) -I/users/goetz/workspace/Gpib/linux/nigpib-linux-0.8.6/
+CXXFLAGS =  -g -D_REENTRANT -DNI4882 $(INCLUDE_DIRS) 
 LFLAGS =  -g $(LIB_DIRS)  		\
-				-L/users/goetz/workspace/Gpib/linux/nigpib-linux-0.8.6/ \
 				-ltango			\
 				-llog4tango		\
 				-lomniORB4 		\
@@ -70,10 +69,10 @@ LFLAGS =  -g $(LIB_DIRS)  		\
 				-lomnithread	\
 				-lCOS4			\
 				-ldl -lpthread \
-				-lgpib
-# To Link with Enet100 library.
-#				-lgpibenet
-
+				$(GPIB_LIB)/libgpibapi.so.2.5.1 \
+				$(GPIB_LIB)/libgpibconf.so.2.5.1 \
+				$(GPIB_LIB)/libgpibconf.so.2.5.1 \
+				$(GPIB_LIB)/libnipalu.so
 endif
 
 
@@ -85,6 +84,7 @@ SVC_OBJS = 	main.o	\
 		ClassFactory.o	\
 		$(CLASS)Class.o	\
 		$(CLASS).o \
+		$(CLASS)StateMachine.o \
 		gpibDevice.o \
 		gpibDeviceException.o
 

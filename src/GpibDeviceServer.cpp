@@ -1,4 +1,4 @@
-static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServer.cpp,v 1.10 2006-06-13 14:56:38 fbecheri Exp $";
+static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServer.cpp,v 1.11 2009-01-26 12:26:53 vedder_bruno Exp $";
 //+=============================================================================
 //
 // file :         GpibDeviceServer.cpp
@@ -11,11 +11,17 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //
 // project :      TANGO Device Server
 //
-// $Author: fbecheri $
+// $Author: vedder_bruno $
 //
-// $Revision: 1.10 $
+// $Revision: 1.11 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.10  2006/06/13 14:56:38  fbecheri
+// - Porting to Tango 5 with IDL 3
+// - Compatibility with the new NI4882 driver.
+// - The method "ReceiveBinData" now takes 'long' as argument.
+// - Minor changes.
+//
 // Revision 1.9  2006/01/23 10:04:32  xavela
 // xavier : CTOR by Gpib address at the end of the
 // init device method.
@@ -203,25 +209,19 @@ void GpibDeviceServer::init_device()
 	//--------------------------------------------
 	get_device_property();
 
-        cout << "Starting Tango GPIB server (Built on " << __DATE__ << " " << __TIME__ << ")." << endl;
+    cout << "Starting Tango GPIB server (Built on " << __DATE__ << " " << __TIME__ << ")." << endl;
 
-        #ifdef GPIB_PCI
-	    cout << "GPIB target is PCI board." << endl;
-	#else
-	    cout << "GPIB target is ENET100 board." << endl;	
-	#endif
-	
 	dev_open = false;	// No gpib device opened.
 	
 	try 
 	{
 	    INFO_STREAM << "Looking for Board:" << device_name << endl;	    
 	    board0 = new gpibBoard( gpibBoardName );
-	    cout << "gpib board " << gpibBoardName << " has been found." << endl;
+	    cout << "gpib board '" << gpibBoardName << "' has been found." << endl;
 	} 
 	catch (gpibDeviceException e) 
 	{
-		cout << "Sorry, '"<< gpibBoardName <<"' board cannot be found, gpib device will be unreachable !" << endl;
+		cout << "No GPIB Enet100 board found (gpibBoardName = '"<< gpibBoardName <<"'). " << endl;
 	}
 	
 	// gpib_device is initialised in Constructor !
@@ -232,7 +232,7 @@ void GpibDeviceServer::init_device()
 	}
 	
 	// Can't open device by address, try by name with names property; gpibDeviceName.
-	if ((dev_open == false) && (gpibDeviceName != "UNSPECIFIED"))
+	if ((dev_open == false) && (gpibDeviceName.length() != 0))
 	{
 		cout << "Trying to open gpib device using name:'" << gpibDeviceName <<"'."<< endl;
 		
@@ -259,7 +259,7 @@ void GpibDeviceServer::init_device()
 			dev_open = true;
 			set_state(Tango::ON);
 			set_status("Gpib device is OK.");
-                        cout << "Device found by name("<< gpibDeviceName<<")." << endl;	    
+            cout << "Device found by name("<< gpibDeviceName<<")." << endl;	    
 		} 
 		catch (gpibDeviceException f) 
 		{
@@ -328,7 +328,7 @@ void GpibDeviceServer::get_device_property()
 	//------------------------------------------
 	gpibDeviceTimeOut = 13; 		/* 10s predefined value 	*/
 	gpibDeviceAddress = 0xFF;		/* Unused set to zero	*/
-	gpibDeviceName = "UNSPECIFIED";		/* Unused set to zero	*/
+	gpibDeviceName = "";			/* Unused set to zero	*/
 	gpibDeviceSecondaryAddress = 0;		/* Unused set to zero	*/
 	
 	//	Read device properties from database.(Automatic code generation)
@@ -1635,7 +1635,6 @@ void GpibDeviceServer::send_bin_data(const Tango::DevVarCharArray *argin)
  *
  *	description:	method to execute "ReceiveBinData"
  *	This command reads an array of binary data from a gpib device.
- *	Up to 65536 bytes. In generaly, a Gpib device can send or receive 64Ko.
  *	Throws an DevFailed exception on error
  *
  * @param	argin	length of the data to receive from the Gpib device
