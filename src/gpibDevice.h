@@ -32,6 +32,14 @@
  */
 #define GPIB_DEFAULT_BOARD	  0
 
+/**
+ * Nb of configuration options (each one can be set with ibconfig
+ * or obatined with ibask)
+ */
+#define GPIB_NB_CONF_OPT          34
+
+
+
 using namespace std;
 
 enum GpibProbeMethod
@@ -44,16 +52,16 @@ enum GpibProbeMethod
 
 /** 
  * This class is designed to handle gpibDevices. It's point of
- * view is very device oriented: For example, setting device in remote mode, is
- * done with 'goToRemoteMode' device's method. It totaly hides the fact that this
- * is done by sending a command to gpib board. Due to ESRF gpib bus usage, this
- * class is designed to work on a single CIC (Controler In Charge) bus. In simple
- * word this class can't handle multi board buses. The default CIC selected is
- * "gpib0".
+ * view is very device oriented: For example, setting device in remote mode, 
+ * is done with 'goToRemoteMode' device's method. It totaly hides the fact 
+ * that this is done by sending a command to gpib board. Due to ESRF gpib 
+ * bus usage, this class is designed to work on a single CIC (Controler In 
+ * Charge) bus. In simple words this class can't handle multi board buses. 
+ * The default CIC selected is "gpib0".
  *
  * The usual way to include gpib feature into a Tango device server consists in
  * single or multiple instance of a gpibDevice / gpibBoard.
- * Once simply use read / write functions to handle devices. Note that All 
+ * One simply uses read / write functions to handle devices. Note that All 
  * operations made on gpibDevice or gpibBoard can potentialy throw a 
  * gpibDeviceException.<link ref ="code example" href "code-example.txt"> 
  */
@@ -62,37 +70,41 @@ class gpibDevice
 
 public:
 
-	gpibDevice(string,string);	// class constructor.
-	gpibDevice(string Name);	// class constructor.
-   	gpibDevice(int add);		// class constructor.
-		
-	string ibstaToString();		// Get string from ibsta string.	
-	string iberrToString();		// Get string from iberr string. 	
-	int getiberr();			// Get device iberr value.		
-	int getibsta();			// Get device ibsta value.		
-	int getDeviceID();		// Get internal device ID.
-	int getDeviceAddr();		// Get device gpib address;
-	unsigned int getibcnt();	// Get device ibsta value.		
-	void clear();				// Clear the gpib device.		
-    void config(int opt,int v);	// Send a ibconfig request.
-	void trigger();			// Trigger the device.		
+        gpibDevice(string dev_name ,string boardname);  // class constructor.
+        gpibDevice(string dev_name);                    // class constructor.
+        gpibDevice(int primary_add, string boardname);  // class constructor.
+        gpibDevice(int primary_add);                    // class constructor.
+
+	string ibstaToString(void);	// Get string from ibsta string.	
+	string iberrToString(void);	// Get string from iberr string. 	
+	int getiberr(void);		// Get device iberr value.		
+	int getibsta(void);		// Get device ibsta value.		
+	int getDeviceID(void);		// Get internal device ID.
+	int getDeviceAddr(void);	// Get device gpib address;
+	unsigned int getibcnt(void);	// Get device ibsta value.		
+	void clear(void);		// Clear the gpib device.		
+        void config(int opt,int v);	// Send a ibconfig request. (= set config)
+        short getconfig(short opt);     // Send a ibask request     (= get config)
+	void trigger(void);		// Trigger the device.		
+        short getSerialPoll(void);      // Get serial-poll byte from device.
 	int write(string);		// Send a string to a gpib device. 	
-	string read();			// Read a string from a gpib device. 	
+	string read(void);		// Read a string from a gpib device. 	
 	string writeRead(string);	// Perform a write/read operation in a row.
 	string read(unsigned long s);	// Read a string from a gpib device. 	
-    void setOffLine();		// Free / rest, set offline gpibDevice taken with ibdev.
-	string getName();		// Return device name. Provided by constructor.
-    void goToLocalMode();		// Device goes to locale mode (opp to remote mode).
+        void setOffLine(void);		// Free / rest, set offline gpibDevice 
+                                        // taken with ibdev.
+	string getName(void);		// Return device name. Provided by constructor.
+        void goToLocalMode(void);	// Device goes to local mode(opp to remote mode).
 	void setTimeOut(int tmo);	// Set Device Time out.
-    void goToRemoteMode();		// Device goes to remote mode (opp to local mode).   
-    short isAlive();		// Check the presence of the device on the bus.
-	char*	receiveData(long count);	// Read binary data from a GPIB device
-	void	sendData(const char *, long count);	// Write binary data on a GPIB device
+        void goToRemoteMode(void);	// Device goes to remote mode(opp to local mode).   
+        short isAlive(void);		// Check the presence of the device on the bus.
+	char* receiveData(long count);	// Read binary data from a GPIB device
+	void sendData(const char *, long count); // Write binary data on a GPIB device
 	
 protected:
 
-	void saveState();		// save iberr/ibstat in dev_ibsta/dev_iberr. 
-	void resetState();		// reset iberr/ibstat in dev_ibsta/dev_iberr.
+	void saveState(void);		// save iberr/ibstat in dev_ibsta/dev_iberr. 
+	void resetState(void);		// reset iberr/ibstat in dev_ibsta/dev_iberr.
 
 	/**
 	 * Internal gpib handler.
@@ -136,11 +148,11 @@ protected:
 	 
 private:
 
-	 void findIsAliveMethod();
+	 void findIsAliveMethod(void);
 	/**
 	 * This is the gpib board, where our device is connected to.
 	 */
-        int gpib_board;	
+        int             gpib_board;	
 	GpibProbeMethod	probe_method; 
 };
 
@@ -188,22 +200,23 @@ class gpibBoard : public gpibDevice
 
 public:
 
-	gpibBoard();			// Class default constructor for gpib0.
+	gpibBoard(void);		// Class default constructor for gpib0.
 	gpibBoard(string board);	// Constructor for specified board.
-	~gpibBoard();			// Classs destructor.
+	~gpibBoard(void);		// Classs destructor.
 
 	vector<gpibDeviceInfo>& getConnectedDeviceList();
 	// NI-488.2 methods call.
-	void sendIFC();			// Send GPIB Interface Clear 	(Board command).
+	void sendIFC(void);		// Send GPIB Interface Clear 	(Board command).
 
         // NI-488 methods call.
 	void llo(int dev);		// Send Local Lockout to a dev. (Board command).
 	int cmd(string);		// Send GPIB command message 	(Board command).
 	void clr(int dev);		// Clear specified device.	(Board command).
+        int  getBoardInd(void);         // Get Board Index (0,1,2,...)
 	
 private:
 
-	int board_id;		// Board number.
+	int board_id;		        // Board number.
 };
 
 #endif

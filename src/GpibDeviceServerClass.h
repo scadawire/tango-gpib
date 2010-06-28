@@ -10,11 +10,17 @@
 //			
 // project :      TANGO Device Server
 //
-// $Author: fbecheri $
+// $Author: franc7 $
 //
-// $Revision: 1.5 $
+// $Revision: 1.6 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.5  2006/06/13 14:56:38  fbecheri
+// - Porting to Tango 5 with IDL 3
+// - Compatibility with the new NI4882 driver.
+// - The method "ReceiveBinData" now takes 'long' as argument.
+// - Minor changes.
+//
 // Revision 1.4  2005/05/13 15:18:20  andy_gotz
 // Latest version from ESRF. Added serialisation by class to main.cpp.
 //
@@ -78,6 +84,150 @@ namespace GpibDeviceServer_ns
 //=========================================
 //	Define classes for commands
 //=========================================
+class GetBoardIndexCmd : public Tango::Command
+{
+public:
+	GetBoardIndexCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	GetBoardIndexCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
+	~GetBoardIndexCmd() {};
+	
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_GetBoardIndex_allowed(any);}
+};
+
+
+
+class GetDevicePadCmd : public Tango::Command
+{
+public:
+	GetDevicePadCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	GetDevicePadCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
+	~GetDevicePadCmd() {};
+	
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_GetDevicePad_allowed(any);}
+};
+
+
+
+class GetSerialPollCmd : public Tango::Command
+{
+public:
+	GetSerialPollCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	GetSerialPollCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
+	~GetSerialPollCmd() {};
+	
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_GetSerialPoll_allowed(any);}
+};
+
+
+
+class ListenerCheckCmd : public Tango::Command
+{
+public:
+	ListenerCheckCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	ListenerCheckCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
+	~ListenerCheckCmd() {};
+	
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_ListenerCheck_allowed(any);}
+};
+
+
+
+class GetConfigCmd : public Tango::Command
+{
+public:
+	GetConfigCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	GetConfigCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
+	~GetConfigCmd() {};
+	
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_GetConfig_allowed(any);}
+};
+
+
+
+class BCGetConfigCmd : public Tango::Command
+{
+public:
+	BCGetConfigCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out,
+				   const char        *in_desc,
+				   const char        *out_desc,
+				   Tango::DispLevel  level)
+	:Command(name,in,out,in_desc,out_desc, level)	{};
+
+	BCGetConfigCmd(const char   *name,
+	               Tango::CmdArgType in,
+				   Tango::CmdArgType out)
+	:Command(name,in,out)	{};
+	~BCGetConfigCmd() {};
+	
+	virtual CORBA::Any *execute (Tango::DeviceImpl *dev, const CORBA::Any &any);
+	virtual bool is_allowed (Tango::DeviceImpl *dev, const CORBA::Any &any)
+	{return (static_cast<GpibDeviceServer *>(dev))->is_BCGetConfig_allowed(any);}
+};
+
+
+
 class ReceiveBinDataCmd : public Tango::Command
 {
 public:
@@ -706,9 +856,14 @@ public:
 // The GpibDeviceServerClass singleton definition
 //
 
-class GpibDeviceServerClass : public Tango::DeviceClass
+class
+#ifdef WIN32
+	__declspec(dllexport)
+#endif
+	GpibDeviceServerClass : public Tango::DeviceClass
 {
 public:
+//	properties member data
 
 //	add your own data members here
 //------------------------------------
@@ -730,8 +885,11 @@ protected:
 	GpibDeviceServerClass(string &);
 	static GpibDeviceServerClass *_instance;
 	void command_factory();
+	void get_class_property();
 	void write_class_property();
 	void set_default_property();
+	string get_cvstag();
+	string get_cvsroot();
 
 private:
 	void device_factory(const Tango::DevVarStringArray *);

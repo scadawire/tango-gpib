@@ -1,14 +1,29 @@
 #=============================================================================
 #
-# file :        Makefile.h
+# file :        Makefile
 #
-# description : Include for the GpibDeviceServer class.
+# description : Makefile for the GpibDeviceServer class.
 #
 # project :     Makefile to generate a Tango server
 #
-# $Author: vedder_bruno $
+# usage:	make all -f Makefile solaris=1  ...>
+#                           to create GpibDeviceServer executable for use
+#                           in ESRF machine control system, when server is
+#                           running on Solaris OS and NI-ENET GPIB box is used
+#               make all -f Makefile linux=1 ...>
+#                           to create GpibDeviceServer executable for use
+#                           in ESRF machine control system, when server is
+#                           running on Linux OS and NI-ENET GPIB box is used
+#               make all -f Makefile linux=1 BCU=1 PCI=1 ...>
+#                           to crate GpibDeviceServer executable for use on 
+#                           ESRF beamlines when NI-PCI GPIB card is used.
+#               make all -f Makefile linux=1 BCU=1 ...>
+#                           to crate GpibDeviceServer executable for use on 
+#                           ESRF beamlines when NI-ENET GPIB box is used.
 #
-# $Revision: 1.8 $
+# $Author: franc7 $
+#
+# $Revision: 1.9 $
 #
 # copyleft :    European Synchrotron Radiation Facility
 #               BP 220, Grenoble 38043
@@ -22,28 +37,67 @@
 #=============================================================================
 #
 
+OSTYPE:=$(shell /csadmin/common/scripts/get_os)
+
 ifdef _solaris
-CC = CC
-#BIN_DIR = solaris9_CC
-BIN_DIR=$(shell /csadmin/common/scripts/get_os)_CC
+	CC = CC
+	#BIN_DIR = solaris9_CC
+	BIN_DIR=$(OSTYPE)_CC
+	# N.B. did not test on the beam-line control system
+	#      [think there is no GPIB driver for Solaris on beam-lines]
 endif
 
 ifdef linux
-CC = c++
-AR = ar
-BIN_DIR=$(shell /csadmin/common/scripts/get_os)
-GPIB_INC = /segfs/linux/drivers/nigpib/NI-GPIB-2.5.1f0/include/
-GPIB_LIB = /segfs/linux/drivers/nigpib/NI-GPIB-2.5.1f0/lib/
+	CC = c++
+	AR = ar
+	BIN_DIR=$(OSTYPE)
+	ifndef BCU
+		GPIB_INC = /segfs/linux/drivers/nigpib/NI-GPIB-2.5.1f0/include
+		GPIB_LIB = /segfs/linux/drivers/nigpib/NI-GPIB-2.5.1f0/lib
+	else
+		GPIB_INC = /segfs/bliss/source/driver/linux-2.6/nigpib
+		ifdef PCI
+			# for PCI version of device server 
+			# (i.e. when NI GPIB PCI-card is used)
+			# N.B. Only tested on redhate4 (do not know if it 
+			#      works for suse72 and suse82)
+			GPIB_LIB = /segfs/bliss/source/driver/linux-2.6/nigpib
+		else
+			# for Ethernet version of device server 
+			# (i.e. when NI ENET-card is used)
+			ifeq ($(OSTYPE),redhate4)
+				# N.B. this is for redhate4 only, since there
+				#      there are no libraries for redhate5 
+				ARCH=$(shell /csadmin/common/scripts/get_esrflinux --architecture)
+				GPIB_LIB = /segfs/bliss/source/driver/lib/$(BIN_DIR)/$(ARCH)
+			else
+				# for suse72 and suse82
+				# N.B. did not test yet
+				GPIB_LIB = /segfs/bliss/source/driver/lib/$(BIN_DIR)
+			endif
+		endif
+	endif
 endif
 
 
-TANGO_HOME   =  /segfs/tango/release
-INCLUDE_DIRS =  -I$(TANGO_HOME)/$(BIN_DIR)/include/	-I.	-I$(GPIB_INC)
-LIB_DIRS     =  -L$(TANGO_HOME)/$(BIN_DIR)/lib/ -L.	-L$(GPIB_LIB)
+TANGO_HOME   = /segfs/tango/release
+
+ifdef _solaris
+INCLUDE_DIRS = -I$(TANGO_HOME)/$(BIN_DIR)/include/ -I.
+else
+INCLUDE_DIRS = -I$(TANGO_HOME)/$(BIN_DIR)/include/ -I. -I$(GPIB_INC)
+endif
+
+LIB_DIRS     = -L$(TANGO_HOME)/$(BIN_DIR)/lib/ -L. -L$(GPIB_LIB)
+
+ifdef BCU
+        # usefull for BCU case, since dynamically link with Tango libs
+        # ans statically with GPIB lib
+	TANGO_LIB_DIR   =  $(TANGO_HOME)/$(BIN_DIR)/lib
+endif
 
 ifdef _solaris
 CXXFLAGS =  -mt -D_PTHREADS $(INCLUDE_DIRS) -D_solaris
-#LFLAGS =  			-Bstatic $(LIB_DIRS)
 LFLAGS =  			$(LIB_DIRS)  	\
 				-lgpib	\
 				-ltango			\
@@ -58,24 +112,46 @@ LFLAGS =  			$(LIB_DIRS)  	\
 				-lposix4 -lsocket -lnsl
 endif
 
+
 ifdef linux
-# -DNI4882 is required for NI4882 driver.
-CXXFLAGS =  -g -D_REENTRANT -DNI4882 $(INCLUDE_DIRS) 
-LFLAGS =  -g $(LIB_DIRS)  		\
-				-ltango			\
-				-llog4tango		\
-				-lomniORB4 		\
-				-lomniDynamic4	\
-				-lomnithread	\
-				-lCOS4			\
-				-ldl -lpthread \
-				$(GPIB_LIB)/libgpibapi.so.2.5.1 \
-				$(GPIB_LIB)/libgpibconf.so.2.5.1 \
-				$(GPIB_LIB)/libgpibconf.so.2.5.1 \
-				$(GPIB_LIB)/libnipalu.so
-endif
-
-
+	ifndef BCU
+		##### -DNI4882 is required for NI4882 driver.
+		CXXFLAGS =  -g -D_REENTRANT -DNI4882 $(INCLUDE_DIRS) 
+		LFLAGS =  -g $(LIB_DIRS)  		\
+			-ltango			\
+			-llog4tango		\
+			-lomniORB4 		\
+			-lomniDynamic4	\
+			-lomnithread	\
+			-lCOS4			\
+			-ldl -lpthread \
+			$(GPIB_LIB)/libgpibapi.so.2.5.1 \
+			$(GPIB_LIB)/libgpibconf.so.2.5.1 \
+			$(GPIB_LIB)/libgpibconf.so.2.5.1 \
+			$(GPIB_LIB)/libnipalu.so
+	else
+		CXXFLAGS =  -g -D_REENTRANT -DBCU $(INCLUDE_DIRS) 
+		ifdef PCI 
+			LFLAGS = -Bdynamic	$(TANGO_LIB_DIR)/libtango.so \
+				$(TANGO_LIB_DIR)/liblog4tango.so	\
+				$(TANGO_LIB_DIR)/libomniORB4.so 	\
+				$(TANGO_LIB_DIR)/libomniDynamic4.so	\
+				$(TANGO_LIB_DIR)/libomnithread.so	\
+				$(TANGO_LIB_DIR)/libCOS4.so		\
+				-ldl -lpthread		\
+				-Bstatic	$(GPIB_LIB)/libgpib.a
+		else
+			LFLAGS = -Bdynamic	$(TANGO_LIB_DIR)/libtango.so \
+				$(TANGO_LIB_DIR)/liblog4tango.so	\
+				$(TANGO_LIB_DIR)/libomniORB4.so 	\
+				$(TANGO_LIB_DIR)/libomniDynamic4.so	\
+				$(TANGO_LIB_DIR)/libomnithread.so	\
+				$(TANGO_LIB_DIR)/libCOS4.so		\
+				-ldl -lpthread		\
+				-Bstatic	$(GPIB_LIB)/libgpibenet.a
+		endif
+	endif
+endif 
 
 
 CLASS =	GpibDeviceServer
@@ -94,8 +170,29 @@ SVC_INC = 	$(CLASS)Class.h \
 
 %.o: %.cpp $(SVC_INC)
 	$(CC) $(CXXFLAGS) -c $<
-			
-all: $(CLASS)
+
+
+
+
+interm: $(CLASS)
+
+ifdef BCU
+ifdef PCI
+all: interm $(CLASS)
+	cp $(CLASS) $(CLASS)_PCI
+endif
+endif
+ifdef BCU
+ifndef PCI
+all: interm $(CLASS)
+	cp $(CLASS) $(CLASS)_ENET
+endif
+endif
+
+ifndef BCU
+all: interm $(CLASS)
+endif
+
 
 $(CLASS):	$(SVC_OBJS)
 	$(CC) $(SVC_OBJS) -o $(CLASS) $(LFLAGS)

@@ -1,4 +1,4 @@
-static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServerStateMachine.cpp,v 1.1 2006-06-13 14:07:02 fbecheri Exp $";
+static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServerStateMachine.cpp,v 1.2 2010-06-28 12:30:45 franc7 Exp $";
 //+=============================================================================
 //
 // file :         GpibDeviceServerStateMachine.cpp
@@ -8,11 +8,14 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //
 // project :      TANGO Device Server
 //
-// $Author: fbecheri $
+// $Author: franc7 $
 //
-// $Revision: 1.1 $
+// $Revision: 1.2 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2006/06/13 14:07:02  fbecheri
+// - Added this file when porting to Tango 5 with IDL 3
+//
 //
 // copyleft :     European Synchrotron Radiation Facility
 //                BP 220, Grenoble 38043
@@ -312,14 +315,9 @@ bool GpibDeviceServer::is_BCclr_allowed(const CORBA::Any &any)
 //-----------------------------------------------------------------------------
 bool GpibDeviceServer::is_GetDeviceID_allowed(const CORBA::Any &any)
 {
-	if (get_state() == Tango::MOVING	||
-		get_state() == Tango::FAULT)
-	{
 		//	End of Generated Code
 
 		//	Re-Start of Generated Code
-		return false;
-	}
 	return true;
 }
 //+----------------------------------------------------------------------------
@@ -442,8 +440,7 @@ bool GpibDeviceServer::is_WriteRead_allowed(const CORBA::Any &any)
 //-----------------------------------------------------------------------------
 bool GpibDeviceServer::is_Config_allowed(const CORBA::Any &any)
 {
-	if (get_state() == Tango::MOVING	||
-		get_state() == Tango::FAULT)
+	if (get_state() == Tango::FAULT)
 	{
 		//	End of Generated Code
 
@@ -493,6 +490,110 @@ bool GpibDeviceServer::is_SendBinData_allowed(const CORBA::Any &any)
 //
 //-----------------------------------------------------------------------------
 bool GpibDeviceServer::is_ReceiveBinData_allowed(const CORBA::Any &any)
+{
+		//	End of Generated Code
+
+		//	Re-Start of Generated Code
+	return true;
+}
+//+----------------------------------------------------------------------------
+//
+// method : 		GpibDeviceServer::is_BCGetConfig_allowed
+// 
+// description : 	Execution allowed for BCGetConfig command.
+//
+//-----------------------------------------------------------------------------
+bool GpibDeviceServer::is_BCGetConfig_allowed(const CORBA::Any &any)
+{
+	if (get_state() == Tango::MOVING	||
+		get_state() == Tango::FAULT)
+	{
+		//	End of Generated Code
+
+		//	Re-Start of Generated Code
+		return false;
+	}
+	return true;
+}
+//+----------------------------------------------------------------------------
+//
+// method : 		GpibDeviceServer::is_GetConfig_allowed
+// 
+// description : 	Execution allowed for GetConfig command.
+//
+//-----------------------------------------------------------------------------
+bool GpibDeviceServer::is_GetConfig_allowed(const CORBA::Any &any)
+{
+	if (get_state() == Tango::MOVING	||
+		get_state() == Tango::FAULT)
+	{
+		//	End of Generated Code
+
+		//	Re-Start of Generated Code
+		return false;
+	}
+	return true;
+}
+//+----------------------------------------------------------------------------
+//
+// method : 		GpibDeviceServer::is_ListenerCheck_allowed
+// 
+// description : 	Execution allowed for ListenerCheck command.
+//
+//-----------------------------------------------------------------------------
+bool GpibDeviceServer::is_ListenerCheck_allowed(const CORBA::Any &any)
+{
+	if (get_state() == Tango::MOVING	||
+		get_state() == Tango::FAULT)
+	{
+		//	End of Generated Code
+
+		//	Re-Start of Generated Code
+		return false;
+	}
+	return true;
+}
+//+----------------------------------------------------------------------------
+//
+// method : 		GpibDeviceServer::is_GetSerialPoll_allowed
+// 
+// description : 	Execution allowed for GetSerialPoll command.
+//
+//-----------------------------------------------------------------------------
+bool GpibDeviceServer::is_GetSerialPoll_allowed(const CORBA::Any &any)
+{
+	if (get_state() == Tango::MOVING	||
+		get_state() == Tango::FAULT)
+	{
+		//	End of Generated Code
+
+		//	Re-Start of Generated Code
+		return false;
+	}
+	return true;
+}
+//+----------------------------------------------------------------------------
+//
+// method : 		GpibDeviceServer::is_GetDevicePad_allowed
+// 
+// description : 	Execution allowed for GetDevicePad command.
+//
+//-----------------------------------------------------------------------------
+bool GpibDeviceServer::is_GetDevicePad_allowed(const CORBA::Any &any)
+{
+		//	End of Generated Code
+
+		//	Re-Start of Generated Code
+	return true;
+}
+//+----------------------------------------------------------------------------
+//
+// method : 		GpibDeviceServer::is_GetBoardIndex_allowed
+// 
+// description : 	Execution allowed for GetBoardIndex command.
+//
+//-----------------------------------------------------------------------------
+bool GpibDeviceServer::is_GetBoardIndex_allowed(const CORBA::Any &any)
 {
 		//	End of Generated Code
 

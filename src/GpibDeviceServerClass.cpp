@@ -1,6 +1,9 @@
+static const char *ClassId    = "$Id: GpibDeviceServerClass.cpp,v 1.7 2010-06-28 12:30:45 franc7 Exp $";
+static const char *CvsPath    = "$Source: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServerClass.cpp,v $";
+static const char *SvnPath    = "$HeadURL: $";
 static const char *TagName   = "$Name: not supported by cvs2svn $";
 static const char *HttpServer= "http://www.esrf.fr/computing/cs/tango/tango_doc/ds_doc/";
-static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServerClass.cpp,v 1.6 2006-06-13 14:56:38 fbecheri Exp $";
+static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServerClass.cpp,v 1.7 2010-06-28 12:30:45 franc7 Exp $";
 //+=============================================================================
 //
 // file :        GpibDeviceServerClass.cpp
@@ -12,11 +15,17 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //
 // project :     TANGO Device Server
 //
-// $Author: fbecheri $
+// $Author: franc7 $
 //
-// $Revision: 1.6 $
+// $Revision: 1.7 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.6  2006/06/13 14:56:38  fbecheri
+// - Porting to Tango 5 with IDL 3
+// - Compatibility with the new NI4882 driver.
+// - The method "ReceiveBinData" now takes 'long' as argument.
+// - Minor changes.
+//
 // Revision 1.5  2005/07/04 11:34:11  vedder_bruno
 // Fixed a memory leak when gpib board/device was not found on server startup.
 // Server no more exits if a gpib board is not found at startup.
@@ -84,6 +93,138 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 
 namespace GpibDeviceServer_ns
 {
+//+----------------------------------------------------------------------------
+//
+// method : 		GetBoardIndexCmd::execute()
+// 
+// description : 	method to trigger the execution of the command.
+//                PLEASE DO NOT MODIFY this method core without pogo   
+//
+// in : - device : The device on which the command must be executed
+//		- in_any : The command input data
+//
+// returns : The command output data (packed in the Any object)
+//
+//-----------------------------------------------------------------------------
+CORBA::Any *GetBoardIndexCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
+{
+
+	cout2 << "GetBoardIndexCmd::execute(): arrived" << endl;
+
+	return insert((static_cast<GpibDeviceServer *>(device))->get_board_index());
+}
+
+//+----------------------------------------------------------------------------
+//
+// method : 		GetDevicePadCmd::execute()
+// 
+// description : 	method to trigger the execution of the command.
+//                PLEASE DO NOT MODIFY this method core without pogo   
+//
+// in : - device : The device on which the command must be executed
+//		- in_any : The command input data
+//
+// returns : The command output data (packed in the Any object)
+//
+//-----------------------------------------------------------------------------
+CORBA::Any *GetDevicePadCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
+{
+
+	cout2 << "GetDevicePadCmd::execute(): arrived" << endl;
+
+	return insert((static_cast<GpibDeviceServer *>(device))->get_device_pad());
+}
+
+//+----------------------------------------------------------------------------
+//
+// method : 		GetSerialPollCmd::execute()
+// 
+// description : 	method to trigger the execution of the command.
+//                PLEASE DO NOT MODIFY this method core without pogo   
+//
+// in : - device : The device on which the command must be executed
+//		- in_any : The command input data
+//
+// returns : The command output data (packed in the Any object)
+//
+//-----------------------------------------------------------------------------
+CORBA::Any *GetSerialPollCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
+{
+
+	cout2 << "GetSerialPollCmd::execute(): arrived" << endl;
+
+	return insert((static_cast<GpibDeviceServer *>(device))->get_serial_poll());
+}
+
+//+----------------------------------------------------------------------------
+//
+// method : 		ListenerCheckCmd::execute()
+// 
+// description : 	method to trigger the execution of the command.
+//                PLEASE DO NOT MODIFY this method core without pogo   
+//
+// in : - device : The device on which the command must be executed
+//		- in_any : The command input data
+//
+// returns : The command output data (packed in the Any object)
+//
+//-----------------------------------------------------------------------------
+CORBA::Any *ListenerCheckCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
+{
+
+	cout2 << "ListenerCheckCmd::execute(): arrived" << endl;
+
+	return insert((static_cast<GpibDeviceServer *>(device))->listener_check());
+}
+
+//+----------------------------------------------------------------------------
+//
+// method : 		GetConfigCmd::execute()
+// 
+// description : 	method to trigger the execution of the command.
+//                PLEASE DO NOT MODIFY this method core without pogo   
+//
+// in : - device : The device on which the command must be executed
+//		- in_any : The command input data
+//
+// returns : The command output data (packed in the Any object)
+//
+//-----------------------------------------------------------------------------
+CORBA::Any *GetConfigCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
+{
+
+	cout2 << "GetConfigCmd::execute(): arrived" << endl;
+
+	Tango::DevShort	argin;
+	extract(in_any, argin);
+
+	return insert((static_cast<GpibDeviceServer *>(device))->get_config(argin));
+}
+
+//+----------------------------------------------------------------------------
+//
+// method : 		BCGetConfigCmd::execute()
+// 
+// description : 	method to trigger the execution of the command.
+//                PLEASE DO NOT MODIFY this method core without pogo   
+//
+// in : - device : The device on which the command must be executed
+//		- in_any : The command input data
+//
+// returns : The command output data (packed in the Any object)
+//
+//-----------------------------------------------------------------------------
+CORBA::Any *BCGetConfigCmd::execute(Tango::DeviceImpl *device,const CORBA::Any &in_any)
+{
+
+	cout2 << "BCGetConfigCmd::execute(): arrived" << endl;
+
+	Tango::DevShort	argin;
+	extract(in_any, argin);
+
+	return insert((static_cast<GpibDeviceServer *>(device))->bcget_config(argin));
+}
+
 //+----------------------------------------------------------------------------
 //
 // method : 		ReceiveBinDataCmd::execute()
@@ -702,6 +843,7 @@ GpibDeviceServerClass::GpibDeviceServerClass(string &s):DeviceClass(s)
 {
 
 	cout2 << "Entering GpibDeviceServerClass constructor" << endl;
+	get_class_property();
 	set_default_property();
 	write_class_property();
 	
@@ -897,6 +1039,36 @@ void GpibDeviceServerClass::command_factory()
 		"length of the data to receive from the Gpib device",
 		"Array of binary data",
 		Tango::OPERATOR));
+	command_list.push_back(new BCGetConfigCmd("BCGetConfig",
+		Tango::DEV_SHORT, Tango::DEV_SHORT,
+		"Configuration option index (see ibask table)",
+		"Value for wanted configuration option",
+		Tango::OPERATOR));
+	command_list.push_back(new GetConfigCmd("GetConfig",
+		Tango::DEV_SHORT, Tango::DEV_SHORT,
+		"Configuration option index (see ibask table)",
+		"Value for wanted configuration option",
+		Tango::OPERATOR));
+	command_list.push_back(new ListenerCheckCmd("ListenerCheck",
+		Tango::DEV_VOID, Tango::DEV_SHORT,
+		"",
+		"Flag telling if selected GPIB device is alive",
+		Tango::OPERATOR));
+	command_list.push_back(new GetSerialPollCmd("GetSerialPoll",
+		Tango::DEV_VOID, Tango::DEV_SHORT,
+		"",
+		"Serial poll status byte",
+		Tango::OPERATOR));
+	command_list.push_back(new GetDevicePadCmd("GetDevicePad",
+		Tango::DEV_VOID, Tango::DEV_SHORT,
+		"",
+		"Device primary address",
+		Tango::OPERATOR));
+	command_list.push_back(new GetBoardIndexCmd("GetBoardIndex",
+		Tango::DEV_VOID, Tango::DEV_SHORT,
+		"",
+		"Board Index (starts with 0)",
+		Tango::OPERATOR));
 
 	//	add polling if any
 	for (unsigned int i=0 ; i<command_list.size(); i++)
@@ -915,7 +1087,7 @@ void GpibDeviceServerClass::command_factory()
 //+----------------------------------------------------------------------------
 Tango::DbDatum GpibDeviceServerClass::get_class_property(string &prop_name)
 {
-	for (int i=0 ; i<cl_prop.size() ; i++)
+	for (unsigned int i=0 ; i<cl_prop.size() ; i++)
 		if (cl_prop[i].name == prop_name)
 			return cl_prop[i];
 	//	if not found, return  an empty DbDatum
@@ -930,7 +1102,7 @@ Tango::DbDatum GpibDeviceServerClass::get_class_property(string &prop_name)
 //-----------------------------------------------------------------------------
 Tango::DbDatum GpibDeviceServerClass::get_default_device_property(string &prop_name)
 {
-	for (int i=0 ; i<dev_def_prop.size() ; i++)
+	for (unsigned int i=0 ; i<dev_def_prop.size() ; i++)
 		if (dev_def_prop[i].name == prop_name)
 			return dev_def_prop[i];
 	//	if not found, return  an empty DbDatum
@@ -946,7 +1118,7 @@ Tango::DbDatum GpibDeviceServerClass::get_default_device_property(string &prop_n
 //-----------------------------------------------------------------------------
 Tango::DbDatum GpibDeviceServerClass::get_default_class_property(string &prop_name)
 {
-	for (int i=0 ; i<cl_def_prop.size() ; i++)
+	for (unsigned int i=0 ; i<cl_def_prop.size() ; i++)
 		if (cl_def_prop[i].name == prop_name)
 			return cl_def_prop[i];
 	//	if not found, return  an empty DbDatum
@@ -991,6 +1163,34 @@ void GpibDeviceServerClass::device_factory(const Tango::DevVarStringArray *devli
 
 //+----------------------------------------------------------------------------
 //
+// method : 		GpibDeviceServerClass::get_class_property()
+// 
+// description : 	Read the class properties from database.
+//
+//-----------------------------------------------------------------------------
+void GpibDeviceServerClass::get_class_property()
+{
+	//	Initialize your default values here (if not done with  POGO).
+	//------------------------------------------------------------------
+
+	//	Read class properties from database.(Automatic code generation)
+	//------------------------------------------------------------------
+
+	//	Call database and extract values
+	//--------------------------------------------
+	if (Tango::Util::instance()->_UseDb==true)
+		get_db_class()->get_property(cl_prop);
+	Tango::DbDatum	def_prop;
+	int	i = -1;
+
+
+	//	End of Automatic code generation
+	//------------------------------------------------------------------
+
+}
+
+//+----------------------------------------------------------------------------
+//
 // method : 	GpibDeviceServerClass::set_default_property
 // 
 // description: Set default property (class and device) for wizard.
@@ -1011,6 +1211,7 @@ void GpibDeviceServerClass::set_default_property()
 	prop_name = "GpibDeviceName";
 	prop_desc = "This property is used to connect gpib device by name.";
 	prop_def  = "";
+	vect_data.clear();
 	if (prop_def.length()>0)
 	{
 		Tango::DbDatum	data(prop_name);
@@ -1024,6 +1225,7 @@ void GpibDeviceServerClass::set_default_property()
 	prop_name = "GpibDeviceAddress";
 	prop_desc = "This is gpidDevice address.";
 	prop_def  = "";
+	vect_data.clear();
 	if (prop_def.length()>0)
 	{
 		Tango::DbDatum	data(prop_name);
@@ -1037,6 +1239,7 @@ void GpibDeviceServerClass::set_default_property()
 	prop_name = "GpibDeviceTimeOut";
 	prop_desc = "This is the GPIB device Time Out. Warning this is a predefined value:\n\n#define TNONE 0 Infinite timeout (disabled)\n#define T10us 1 Timeout of 10 us (ideal)\n#define T30us 2 Timeout of 30 us (ideal)\n#define T100us 3 Timeout of 100 us (ideal)\n#define T300us 4 Timeout of 300 us (ideal)\n#define T1ms 5 Timeout of 1 ms (ideal)\n#define T3ms 6 Timeout of 3 ms (ideal)\n#define T10ms 7 Timeout of 10 ms (ideal)\n#define T30ms 8 Timeout of 30 ms (ideal)\n#define T100ms 9 Timeout of 100 ms (ideal)\n#define T300ms 10 Timeout of 300 ms (ideal)\n#define T1s 11 Timeout of 1 s (ideal)\n#define T3s 12 Timeout of 3 s (ideal)\n#define T10s 13 Timeout of 10 s (ideal)\n#define T30s 14 Timeout of 30 s (ideal)\n#define T100s 15 Timeout of 100 s (ideal)\n#define T300s 16 Timeout of 300 s (ideal)\n#define T1000s 17 Timeout of 1000 s (maximum";
 	prop_def  = "";
+	vect_data.clear();
 	if (prop_def.length()>0)
 	{
 		Tango::DbDatum	data(prop_name);
@@ -1050,6 +1253,7 @@ void GpibDeviceServerClass::set_default_property()
 	prop_name = "GpibDeviceSecondaryAddress";
 	prop_desc = "Second address of the gpib device.";
 	prop_def  = "";
+	vect_data.clear();
 	if (prop_def.length()>0)
 	{
 		Tango::DbDatum	data(prop_name);
@@ -1061,8 +1265,9 @@ void GpibDeviceServerClass::set_default_property()
 		add_wiz_dev_prop(prop_name, prop_desc);
 
 	prop_name = "GpibBoardName";
-	prop_desc = "This is the name of the board where gpib device is plugged.\ne.g \"gpib1\"";
+	prop_desc = "This is the name of the board where gpib device is plugged.\ne.g \"gpib1";
 	prop_def  = "";
+	vect_data.clear();
 	if (prop_def.length()>0)
 	{
 		Tango::DbDatum	data(prop_name);
@@ -1106,17 +1311,23 @@ void GpibDeviceServerClass::write_class_property()
 	description << str_desc;
 	data.push_back(description);
 		
-	//	put cvs location
-	string	rcsId(RcsId);
+	//	put cvs or svn location
 	string	filename(classname);
-	start = rcsId.find("/");
+	filename += "Class.cpp";
+	
+	// Create a string with the class ID to
+	// get the string into the binary
+	string	class_id(ClassId);
+	
+	// check for cvs information
+	string	src_path(CvsPath);
+	start = src_path.find("/");
 	if (start!=string::npos)
 	{
-		filename += "Class.cpp";
-		end   = rcsId.find(filename);
+		end   = src_path.find(filename);
 		if (end>start)
 		{
-			string	strloc = rcsId.substr(start, end-start);
+			string	strloc = src_path.substr(start, end-start);
 			//	Check if specific repository
 			start = strloc.find("/cvsroot/");
 			if (start!=string::npos && start>0)
@@ -1130,19 +1341,66 @@ void GpibDeviceServerClass::write_class_property()
 			data.push_back(cvs_loc);
 		}
 	}
+	// check for svn information
+	else
+	{
+		string	src_path(SvnPath);
+		start = src_path.find("://");
+		if (start!=string::npos)
+		{
+			end = src_path.find(filename);
+			if (end>start)
+			{
+				header = "$HeadURL: ";
+				start = header.length();
+				string	strloc = src_path.substr(start, (end-start));
+				
+				Tango::DbDatum	svn_loc("svn_location");
+				svn_loc << strloc;
+				data.push_back(svn_loc);
+			}
+		}
+	}
 
-	//	Get CVS tag revision
+	//	Get CVS or SVN revision tag
+	
+	// CVS tag
 	string	tagname(TagName);
 	header = "$Name: ";
 	start = header.length();
 	string	endstr(" $");
+	
 	end   = tagname.find(endstr);
-	if (end>start)
+	if (end!=string::npos && end>start)
 	{
 		string	strtag = tagname.substr(start, end-start);
 		Tango::DbDatum	cvs_tag("cvs_tag");
 		cvs_tag << strtag;
 		data.push_back(cvs_tag);
+	}
+	
+	// SVN tag
+	string	svnpath(SvnPath);
+	header = "$HeadURL: ";
+	start = header.length();
+	
+	end   = svnpath.find(endstr);
+	if (end!=string::npos && end>start)
+	{
+		string	strloc = svnpath.substr(start, end-start);
+		
+		string tagstr ("/tags/");
+		start = strloc.find(tagstr);
+		if ( start!=string::npos )
+		{
+			start = start + tagstr.length();
+			end   = strloc.find(filename);
+			string	strtag = strloc.substr(start, end-start-1);
+			
+			Tango::DbDatum	svn_tag("svn_tag");
+			svn_tag << strtag;
+			data.push_back(svn_tag);
+		}
 	}
 
 	//	Get URL location
@@ -1153,6 +1411,13 @@ void GpibDeviceServerClass::write_class_property()
 		db_doc_url << httpServ;
 		data.push_back(db_doc_url);
 	}
+
+	//  Put inheritance
+	Tango::DbDatum	inher_datum("InheritedFrom");
+	vector<string> inheritance;
+	inheritance.push_back("Device_4Impl");
+	inher_datum << inheritance;
+	data.push_back(inher_datum);
 
 	//	Call database and and values
 	//--------------------------------------------

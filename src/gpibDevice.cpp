@@ -9,13 +9,26 @@
 #endif
 
 #ifdef linux
+#ifdef BCU
+#include "ugpib.h"
+#else
 #include "ni488.h"
+#endif
 #endif
 
 /* Include for Windows. */
 #ifdef WIN32
 #include <windows.h>
 #include "ni488.h"	
+#endif
+
+
+#ifdef BCU
+extern "C" {
+void errno()
+{
+}
+}
 #endif
 
 using namespace std;
@@ -48,7 +61,7 @@ const string error_array[] = {
 };
 
 /**
- * This is the base constructor for the gpibDevice class.
+ * This is the 1st constructor for the gpibDevice class.
  * The parameter passed to this constructor, is the device name as 
  * defined in the gpib driver with the ibconf program, and the boardname
  * which is in gpibX form, where x is a digit, where your device is linked on.
@@ -73,13 +86,12 @@ gpibDevice::gpibDevice(string dev_name, string boardname)
     device_name = dev_name;
     if ( (devID & ERR) || (dev_ibsta & ERR) )
     {
-	    cout << boardname <<":" << device_name << ": An error occurs while executing ibfind()."<< endl;
-	    cout << "iberrToString() = " << iberrToString() << endl;
-		cout << "ibstaToString() = " << ibstaToString() << endl;
-		cout << "getiberr() = " << getiberr() << endl;
-		cout << "getibsta() = " << getibsta() << endl;
-		throw gpibDeviceException( device_name, "Error occurs while connecting to GPIB ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta());
+        cout << boardname <<":" << device_name << ": An error occurs while executing ibfind()."<< endl;
+        cout << "iberrToString() = " << iberrToString() << endl;
+	cout << "ibstaToString() = " << ibstaToString() << endl;
+	cout << "getiberr() = " << getiberr() << endl;
+	cout << "getibsta() = " << getibsta() << endl;
+	throw gpibDeviceException( device_name, "Error occurs while connecting to GPIB ", iberrToString(), ibstaToString(), getiberr(),getibsta());
     }
   
     resetState();
@@ -87,15 +99,13 @@ gpibDevice::gpibDevice(string dev_name, string boardname)
     saveState();
     if ( (devID & ERR) || (dev_ibsta & ERR) )
     {
-
         cout << boardname <<":" << device_name << ": An error occurs while execution ibask()."<< endl;
         cout << "iberrToString() = " << iberrToString() << endl;
-		cout << "ibstaToString() = " << ibstaToString() << endl;
-		cout << "getiberr() = " << getiberr() << endl;
-		cout << "getibsta() = " << getibsta() << endl;
+	cout << "ibstaToString() = " << ibstaToString() << endl;
+	cout << "getiberr() = " << getiberr() << endl;
+	cout << "getibsta() = " << getibsta() << endl;
 	
-		throw gpibDeviceException( device_name, "Error occurs while getting device Addr ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta());
+	throw gpibDeviceException( device_name, "Error occurs while getting device Addr ", iberrToString(), ibstaToString(), getiberr(),getibsta());
     }
     devAddr = pad;
 
@@ -105,17 +115,15 @@ gpibDevice::gpibDevice(string dev_name, string boardname)
     
     if ((gpib_board < 0) || (gpib_board> MAX_BOARD_INDEX) )
     {
-		throw gpibDeviceException( device_name, "Error occurs while getting device Addr ",
-	        	              "Board index is out of range.",
-							  "Value must be between 0 and 7",
-							  getiberr(),getibsta());
+	throw gpibDeviceException( device_name, "Error occurs while getting device Addr ", "Board index is out of range.", "Value must be between 0 and 7", getiberr(),getibsta());
     }
 };
 
+
 /**
- * This is the base constructor for the gpibDevice class.
- * The parameter passed to this constructor, is the device name as 
- * defined in the gpib driver with the ibconf program.
+ * This is the 2nd constructor for the gpibDevice class.
+ * The parameter passed to this constructor is the device name as 
+ * defined in the gpib driver with the "ibconf" program.
  * VERY IMPORTANT NOTE:
  * If method doesn't throw exception this not necessarly mean that the gpib
  * device exists. This mean that the name devX exists in the gpib driver !
@@ -123,8 +131,8 @@ gpibDevice::gpibDevice(string dev_name, string boardname)
  */
 gpibDevice::gpibDevice(string dev_name) 
 {
-    int pad;    
-	probe_method = GPIB_PROBE_UNKNOWN;		
+    int pad;
+    probe_method = GPIB_PROBE_UNKNOWN;
     resetState();
 
     // Get Device by name.
@@ -133,8 +141,7 @@ gpibDevice::gpibDevice(string dev_name)
     device_name = dev_name;
     if ( (devID & ERR) || (dev_ibsta & ERR) )
     {
-	throw gpibDeviceException( device_name, "Error occurs while connecting to GPIB ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta());
+	throw gpibDeviceException( device_name, "Error occurs while connecting to GPIB ", iberrToString(), ibstaToString(), getiberr(),getibsta());
     }
   
     resetState();
@@ -142,47 +149,108 @@ gpibDevice::gpibDevice(string dev_name)
     saveState();
     if ( (devID & ERR) || (dev_ibsta & ERR) )
     {
-	throw gpibDeviceException( device_name, "Error occurs while getting device Addr ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta());
+	throw gpibDeviceException( device_name, "Error occurs while getting device Addr ", iberrToString(), ibstaToString(), getiberr(),getibsta());
     }
     devAddr = pad;
     gpib_board = GPIB_DEFAULT_BOARD;
 };
 
+
 /**
- * This is the second constructor for the gpibDevice class.
- * It opens a device by its Primary address.
+ * This is the 3rd constructor for the gpibDevice class.
+ * It opens a device by GPIB Board name and Primary address.
+ * This constructor assumes your gpib device secondary address to be 0 !
+ * (= the third argument to ibdev()).
  *
  * See the default parameters for ibdev !
  *
  */
-gpibDevice::gpibDevice(int add) 
+gpibDevice::gpibDevice(int primary_add, string boardname)
 {
     ostringstream os;
-    os << add;
-    int pad;        
-	probe_method = GPIB_PROBE_UNKNOWN;
-	resetState();
+    os << primary_add;
+    int    pad;
+    string ss;
+    probe_method = GPIB_PROBE_UNKNOWN;
+    resetState();
 
-	devID = ibdev(0, add, 0, 13, 1, 0);
-    saveState();
-    if ( (devID & ERR) || (dev_ibsta & ERR) )
+    cout << " Tango Device name  = " << device_name << endl;
+
+    // Save board id.
+    ss = boardname.substr(4);
+    gpib_board = atoi( ss.c_str() );
+
+    if ((gpib_board < 0) || (gpib_board> MAX_BOARD_INDEX) )
     {
-		throw gpibDeviceException( device_name, "Error occurs while connecting to GPIB ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta());
+        throw gpibDeviceException( device_name, "Error occurs while getting device Addr ", "Board index is out of range.", "Value must be between 0 and 7", getiberr(),getibsta());
     }
-  
-	resetState();
-    ibask(devID,0x01,&pad);	// Get PAD;
+
+    devID = ibdev(gpib_board, primary_add, 0, 13, 1, 0);
     saveState();
     if ( (devID & ERR) || (dev_ibsta & ERR) )
     {
-		throw gpibDeviceException( device_name, "Error occurs while getting device Addr ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta());
+        throw gpibDeviceException( device_name, "Error occurs while connecting to GPIB ", iberrToString(), ibstaToString(), getiberr(),getibsta());
+    }
+
+    resetState();
+    ibask(devID,0x01,&pad);     // Get PAD and check if it is the same as on ip
+    saveState();
+    if ( (devID & ERR) || (dev_ibsta & ERR) )
+    {
+        throw gpibDeviceException( device_name, "Error occurs while getting device Addr ", iberrToString(), ibstaToString(), getiberr(),getibsta());
+    }
+    if (pad != primary_add) 
+    {
+        throw gpibDeviceException( device_name, "Error occured: primary address on the input of constructur not the same as obtained with ibask() ", iberrToString(), ibstaToString(), getiberr(),getibsta());
+    }
+
+    devAddr = pad;
+};
+
+
+/**
+ * This is the 4th constructor for the gpibDevice class.
+ * It opens a device by its Primary address.
+ * This constructor assumes your gpib device to be on board 0 !
+ * (= the first argument to ibdev()).
+ * This constructor assumes your gpib device secondary address to be 0 !
+ * (= the third argument to ibdev()).
+
+ * See the default parameters for ibdev !
+ *
+ */
+gpibDevice::gpibDevice(int primary_add)
+{
+    ostringstream os;
+    os << primary_add;
+    int pad;
+    probe_method = GPIB_PROBE_UNKNOWN;
+    resetState();
+
+    cout << " Tango Device name  = " << device_name << endl;
+
+    devID = ibdev(0, primary_add, 0, 13, 1, 0);
+    saveState();
+    if ( (devID & ERR) || (dev_ibsta & ERR) )
+    {
+        throw gpibDeviceException( device_name, "Error occurs while connecting to GPIB ", iberrToString(), ibstaToString(), getiberr(),getibsta());
+    }
+
+    resetState();
+    ibask(devID,0x01,&pad);     // Get PAD;
+    saveState();
+    if ( (devID & ERR) || (dev_ibsta & ERR) )
+    {
+        throw gpibDeviceException( device_name, "Error occurs while getting device Addr ", iberrToString(), ibstaToString(), getiberr(),getibsta());
+    }
+    if (pad != primary_add) 
+    {
+        throw gpibDeviceException( device_name, "Error occured: primary address on the input of constructur not the same as obtained with ibask() ", iberrToString(), ibstaToString(), getiberr(),getibsta());
     }
     devAddr = pad;
     gpib_board = GPIB_DEFAULT_BOARD;
 };
+
 
 /**
  * ibsta register string conversion.
@@ -209,8 +277,9 @@ string gpibDevice::ibstaToString()
    return ret;    
 }
 
+
 /**
- * ibserr register string conversion.
+ * iberr register string conversion.
  * This method returns error string corresponding to err register.
  */
 string gpibDevice::iberrToString() {
@@ -224,6 +293,7 @@ string gpibDevice::iberrToString() {
     return error_array[20];
 }
 
+
 /**
  * This method returns device's iberr register.
  */
@@ -231,6 +301,7 @@ int gpibDevice::getiberr()
 {
     return dev_iberr;
 }
+
 
 /**
  * This method returns device's ibsta register.
@@ -240,6 +311,7 @@ int gpibDevice::getibsta()
     return dev_ibsta;
 }
 
+
 /**
  * This method returns device's ibcnt register.
  */
@@ -248,8 +320,9 @@ unsigned int gpibDevice::getibcnt()
     return dev_ibcnt;
 }    
 
+
 /**
- * This method returns device's ID. This is usefull for controlling.
+ * This method returns device's ID. This is usefull for controlling
  * device from a gpib board. For example : Method BCclr needs this value
  * to clear a device.
  */
@@ -257,6 +330,7 @@ int gpibDevice::getDeviceID()
 {
     return devID;
 }
+
 
 /**
  * This method returns device's name. 
@@ -268,15 +342,17 @@ string gpibDevice::getName()
     return device_name;
 }
 
+
 /**
- * This method returns device's name. 
- * This mean, the name passed to the constructor as string, or the name 
- * built with the constructor using address e.g. dev4
+ * This method returns device's primary address. 
+ * This mean, the primary address passed to the constructor.
  */
 int gpibDevice::getDeviceAddr()
 {
     return devAddr;
 }
+
+
 /**
  * This method is for internal class use. 
  * GPIB iberr, ibsta and ibcnt are global to all devices. The gpibDevice 
@@ -297,10 +373,11 @@ void gpibDevice::saveState()
 #endif
 }
 
+
 /**
- * This method is for internal class use. 
+ * This method is for internal class use.
  * GPIB iberr, ibsta and ibcnt are global to all devices. The gpibDevice 
- * class will call this method before all NI488 / NI488.2 function call, 
+ * class will call this method before all NI488 / NI488.2 function call,
  * to reset a specific device state. This method must not be used from
  * outside the gpibDevice class.
  */
@@ -311,6 +388,7 @@ void gpibDevice::resetState()
     dev_ibcnt = 0;
 }
 
+
 /**
  * This method tries to determine how to probe the device dynamically.
  */
@@ -318,25 +396,25 @@ void gpibDevice::findIsAliveMethod()
 {
     probe_method = GPIB_PROBE_UNKNOWN;
 	
-	// With pci board, ibnl goes to device.
-	ibln( devID , devAddr, 0, &alive);
-	if ( (!(dev_ibsta & ERR)) && (alive != 0))
-	{
-		probe_method = GPIB_PROBE_DEVICE;
-		cout << "IsAlive method used : On Device." << endl;
-		return;
-	}
+    // With pci board, ibln goes to device.
+    ibln( devID , devAddr, 0, &alive);
+    if ( (!(dev_ibsta & ERR)) && (alive != 0))
+    {
+	probe_method = GPIB_PROBE_DEVICE;
+	cout << "IsAlive method used : On Device." << endl;
+	return;
+    }
 
-    // With enet board, ibnl goes enet.
+    // With enet board, ibln goes enet.
     ibln( gpib_board , devAddr, 0, &alive);
-	if ( (!(dev_ibsta & ERR)) && (alive != 0))
-	{
-		probe_method = GPIB_PROBE_BOARD;
-		cout << "IsAlive method used : On Board." << endl;
-		return;
-	}
+    if ( (!(dev_ibsta & ERR)) && (alive != 0))
+    {
+	probe_method = GPIB_PROBE_BOARD;
+	cout << "IsAlive method used : On Board." << endl;
+	return;
+    }
 	
-	cout << "Unable to determine IsAlive method to use. is your hardware turned on ?." << endl;
+    cout << "Unable to determine IsAlive method to use. is your hardware turned on ?." << endl;
 }
 
 
@@ -348,46 +426,46 @@ short gpibDevice::isAlive() {
 
     resetState();
 
-	if (probe_method == GPIB_PROBE_UNKNOWN)
-	{
-		findIsAliveMethod();
-	}
+    if (probe_method == GPIB_PROBE_UNKNOWN)
+    {
+	findIsAliveMethod();
+    }
 
-	switch(probe_method)
-	{
-		case GPIB_PROBE_DEVICE:
-		    // With pci board, ibnl goes to device.
-		    ibln( devID , devAddr, 0, &alive);
-		break;
+    switch(probe_method)
+    {
+	case GPIB_PROBE_DEVICE:
+	    // With pci board, ibln goes to device.
+	    ibln( devID , devAddr, 0, &alive);
+	break;
 
-		case GPIB_PROBE_BOARD:
-		    // With enet board, ibnl goes enet.
-		    ibln( gpib_board , devAddr, 0, &alive);
-		break;
+	case GPIB_PROBE_BOARD:
+	    // With enet board, ibln goes enet.
+	    ibln( gpib_board , devAddr, 0, &alive);
+	break;
 
-		case GPIB_PROBE_UNKNOWN:
-		break;
+	case GPIB_PROBE_UNKNOWN:
+	break;
 
-		default:
-		break;		
-	}
+	default:
+	break;		
+    }
 
     saveState();
 
     if (dev_ibsta & ERR || probe_method == GPIB_PROBE_UNKNOWN)
     {
-		throw gpibDeviceException( device_name,"Device not answering to ibln (isAlive() method).",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
+	throw gpibDeviceException( device_name,"Device not answering to ibln (isAlive() method).", iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
     return alive;
 }
 
+
 /**
  * This method reads a string from the encapsulated device.
- * Read a string from the encapsulated device. Return the string readed. 
+ * Read a string from the encapsulated device. Return the string read. 
  * A byte read value is store in private int 'dev_ibcnt' and is valid 
  * until another call to a NI488 function is made. It should not be accessed
- * throught get_ibcnt, because string.length() already do that.
+ * throught get_ibcnt, because string.length() already does that.
  * Coders should use this method rather than read(int) cause its buffer
  * of RD_BUFFER_SIZE size is almost enough all time. Only use read(int) when
  * you expect return buffer > RD_BUFFER_SIZE ( but this method is slowest due to
@@ -397,33 +475,32 @@ string gpibDevice::read()
 {
     string ret;
 
-	resetState();
+    resetState();
     memset(rd_buffer,0, (RD_BUFFER_SIZE+1));    
     ibrd(devID,rd_buffer,RD_BUFFER_SIZE);    
     ret = rd_buffer;
     saveState();
     if (dev_ibsta & ERR)
     {
-	throw gpibDeviceException( device_name,"Error occurs while reading to GPIB ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
+	throw gpibDeviceException( device_name,"Error occurs while reading to GPIB ", iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
     return ret;
 }
 
+
 /**
- * This method send a string to the encapsulated device. 
+ * This method sends a string to the encapsulated device. 
  * Return the number of data written. 
  */
 int gpibDevice::write(string m) 
 {
     
-	resetState();
+    resetState();
     ibwrt(devID,(char *) m.c_str(),m.length() );  
     saveState();
     if (dev_ibsta & ERR)
     {
-	throw gpibDeviceException( device_name,"Error occurs while writing to GPIB ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
+	throw gpibDeviceException( device_name,"Error occurs while writing to GPIB ", iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
     return dev_ibcnt;	/* Return saved incnt value */
 }
@@ -439,8 +516,7 @@ string gpibDevice::writeRead(string m)
     saveState();
     if (dev_ibsta & ERR)
     {
-	throw gpibDeviceException( device_name,"Error occurs while writing to GPIB ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
+	throw gpibDeviceException( device_name,"Error occurs while writing to GPIB ", iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
 
     // Make second operation: Read.
@@ -454,15 +530,15 @@ string gpibDevice::writeRead(string m)
         
     if (dev_ibsta & ERR)
     {
-	throw gpibDeviceException( device_name,"Error occurs while reading to GPIB ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
+	throw gpibDeviceException( device_name,"Error occurs while reading to GPIB ", iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
     return ret;
 }
 
+
 /*
  * This method reads a string from the encapsulated device.
- * Read a specified size string from the device. Return the string readed. 
+ * Read a specified size string from the device. Return the string read. 
  * A byte read value is store in private int 'dev_ibcnt' and is valid 
  * until another call to a NI488 function is made. It should not be accessed
  * throught get_ibcnt, because string.length() already do that.
@@ -483,18 +559,17 @@ string gpibDevice::read(unsigned long size)
 
     if (dev_ibsta & ERR)
     {
-	throw gpibDeviceException( device_name,"Error occurs while reading to GPIB ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
+	throw gpibDeviceException( device_name,"Error occurs while reading to GPIB ", iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
     return ret;
 }
 
-/******************************************************************************************/
-/*
- *	These methods perform a write or a read of binary data on the GPIB device
+
+/******************************************************************************
  *
+ * The next 2 methods perform a write/read of binary data on the GPIB device
  *
-/******************************************************************************************/
+ *****************************************************************************/
 void gpibDevice::sendData(const char *argin, long count)
 {
 	
@@ -512,30 +587,31 @@ void gpibDevice::sendData(const char *argin, long count)
     } 
 }
 
+
 char *gpibDevice::receiveData(long count)
 {
 
-// allocate buffer for reading data on the GPIB bus
-char* buffer = new char [count];
+    // allocate buffer for reading data on the GPIB bus
+    char* buffer = new char [count];
 
-	memset(buffer,0, count);
+    memset(buffer,0, count);
 
-	if (buffer == NULL)
-	{
-  	    throw gpibDeviceException( device_name, 
-		string("Cannot allocate memory for receiveData"),
-		iberrToString(),
-		ibstaToString(),
-		getiberr(),
-		getibsta());
-	}
+    if (buffer == NULL)
+    {
+        throw gpibDeviceException( device_name, 
+	    string("Cannot allocate memory for receiveData"),
+	    iberrToString(),
+	    ibstaToString(),
+	    getiberr(),
+	    getibsta());
+    }
   
-	resetState();
+    resetState();
 	
-	Receive ( gpib_board, MakeAddr(devAddr, 0), buffer, count, STOPend);
-	// The actual number of bytes transferred is returned in the  variable, ibcntl.
-	// we use ThreadIbcntl for thread safety
-	saveState();
+    Receive ( gpib_board, MakeAddr(devAddr, 0), buffer, count, STOPend);
+    // The actual number of bytes transferred is returned in the variable 
+    // ibcntl. We use ThreadIbcntl for thread safety
+    saveState();
 
     if (dev_ibsta & ERR)
     {
@@ -545,18 +621,18 @@ char* buffer = new char [count];
 	    iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
 
-	//long bytes_read=ThreadIbcntl ();
-	// CAUTION/TODO : If long bytes_read != count what should we do : 
-	// a) throw an exception: but it may be too much to take such a decision at low level
-	// b) reallocate a data buffer of the right size (long bytes_read), copy the buffer data into it, 
-	// and return this buffer of the rigth size to the caller . this last opion is our prefered but 
-	// for now we prefer to avoid this potential extracopy of data 
-	// 
-	// 
+    //long bytes_read=ThreadIbcntl ();
+    // CAUTION/TODO : If long bytes_read != count what should we do :
+    // a) throw an exception: but it may be too much to take such a decision 
+    //    at low level
+    // b) reallocate a data buffer of the right size (long bytes_read), 
+    //    copy the buffer data into it, and return this buffer of the rigth
+    //    size to the caller. This last opion is our prefered but for now
+    //    we prefer to avoid this potential extracopy of data.
 
-	return buffer;
+    return buffer;
 }
-/******************************************************************************************/
+/**************************************************************************/
 
 /**
  * This method clears the encapsulated device.
@@ -569,13 +645,13 @@ void gpibDevice::clear()
     saveState();
     if (dev_ibsta & ERR)
     {
-	throw gpibDeviceException(device_name, "Error occurs while clearing to GPIB ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
+	throw gpibDeviceException(device_name, "Error occurs while clearing to GPIB ", iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
 }
 
+
 /**
- * This method send a configuration request to the device.
+ * This method sends a configuration request to the device.
  */
 void gpibDevice::config(int option, int value)
 {
@@ -584,10 +660,33 @@ void gpibDevice::config(int option, int value)
     saveState();
     if (dev_ibsta & ERR)
     {
-	throw gpibDeviceException(device_name, "Error occurs while clearing to GPIB ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
+	throw gpibDeviceException(device_name, "Error occurs while clearing to GPIB ", iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
 }
+
+
+/**
+ * This method asks for a valu of a given configuration parameter of
+ * device or board.
+ */
+short gpibDevice::getconfig(short option)
+{
+    int value;
+
+    resetState();
+    ibask(devID, option, &value);
+
+    // temporarily to see what get out with ibask
+    cout << "getconfig(): option = " << option << " value = " << value << endl;
+
+    saveState();
+    if (dev_ibsta & ERR)
+    {
+        throw gpibDeviceException(device_name, "Error occurs while asking for one configuration field of GPIB board or device ", iberrToString(), ibstaToString(), getiberr(),getibsta() );
+    }
+    return (short)value;
+}
+
 
 /**
  * This method sends a trigger signal to the gpib device. The device was
@@ -601,9 +700,25 @@ void gpibDevice::trigger()
     saveState();
     if (dev_ibsta & ERR)
     {
-	throw gpibDeviceException(device_name, "Error occurs while triggering device ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
+	throw gpibDeviceException(device_name, "Error occurs while triggering device ", iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
+}
+
+
+/**
+ * This method makes a serial poll on the gpib device.
+ */
+short gpibDevice::getSerialPoll()
+{
+    char serialpollbyte;
+    resetState();
+    ibrsp(devID,&serialpollbyte );
+    saveState();
+    if (dev_ibsta & ERR)
+    {
+        throw gpibDeviceException(device_name, "Error occurs while triggering device ", iberrToString(), ibstaToString(), getiberr(),getibsta() );
+    }
+    return (short)serialpollbyte;
 }
 
 
@@ -622,16 +737,13 @@ void gpibDevice::setTimeOut(int v)
         saveState();
 
     } else {
-    
-	throw gpibDeviceException(device_name, "Error occurs while setting time out on ",
-	                         "Value out of range.", " [0-15] value expected.", getiberr(),getibsta() );
+	throw gpibDeviceException(device_name, "Error occurs while setting time out on ", "Value out of range.", " [0-15] value expected.", getiberr(),getibsta() );
     }
 
     // v contains correct value, does the cmd terminate correctly ?
     if ( dev_ibsta & ERR )
     {
-	throw gpibDeviceException(device_name, "Error occurs while setting time out on ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
+	throw gpibDeviceException(device_name, "Error occurs while setting time out on ", iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
 }
 
@@ -648,12 +760,10 @@ void gpibDevice::setOffLine()
     saveState();
     if (dev_ibsta & ERR)
     {
-
-	throw gpibDeviceException( device_name,"Error occurs with setOffline method ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
-
+	throw gpibDeviceException( device_name,"Error occurs with setOffline method ", iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
 }
+
 
 /**
  * This method tries to put the device in local control mode.
@@ -670,11 +780,10 @@ void gpibDevice::goToLocalMode()
     saveState();
     if (dev_ibsta & ERR)
     {
-	
-	throw gpibDeviceException( device_name,"Error occurs with ibloc() command",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
+	throw gpibDeviceException( device_name,"Error occurs with ibloc() command", iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
 }
+
 
 /**
  * This method tries to put the device in remote control mode.
@@ -688,16 +797,14 @@ void gpibDevice::goToRemoteMode()
     saveState();
     if (dev_ibsta & ERR)
     {
-	
-	throw gpibDeviceException( device_name,"Error occurs with ibsre() command",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
+	throw gpibDeviceException( device_name,"Error occurs with ibsre() command", iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
 }
 
 
 //+----------------------------------------------------------------------------
 //
-// 	Classc gpibBoard Implementation:
+// 	Class gpibBoard Implementation:
 //
 //-----------------------------------------------------------------------------
 
@@ -710,6 +817,7 @@ gpibBoard::gpibBoard() :gpibDevice( "gpib0" )
     board_id = GPIB_DEFAULT_BOARD;
 }
 
+
 /**
  * This is a gpibBoard constructor for a specific board. It passes board_name
  *  argument to the super-class gpibDevice. 
@@ -720,6 +828,7 @@ gpibBoard::gpibBoard(string boardname) :gpibDevice( boardname )
     ss = boardname.substr(4);
     board_id = atoi( ss.c_str() );
 }
+
 
 /**
  * This method sends an Interface Clear on the bus. 
@@ -734,11 +843,10 @@ void gpibBoard::sendIFC()
     saveState();
     if (dev_ibsta & ERR)
     {
-	
-	throw gpibDeviceException( device_name,"Error occurs with sendIFC() command",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
+	throw gpibDeviceException( device_name,"Error occurs with sendIFC() command", iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
 }
+
 
 /**
  * Send a GPIB command message. 
@@ -753,11 +861,11 @@ int gpibBoard::cmd(string cmd)
     if (dev_ibsta & ERR)
     {
 	throw gpibDeviceException(device_name, "Error occurs with cmd on GPIB ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
-
+	          iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
     return dev_ibcnt;	/* Return saved incnt value */
 }
+
 
 /**
  * Send a Local Lockout to a specified device.
@@ -772,13 +880,25 @@ void gpibBoard::llo(int dev)
     ibllo( dev );  
 #endif
 
+#ifdef _linux
+    /* Ignore device, LLO is sent to all with the function SendLLO().
+     * There is no function ibllo() in Linux library.
+     *  SendLLO( board_id );
+     *
+     * Although did not find in doc (in GPIB Library Software Users Manual)
+     * found with nm libgpib.a and others (for enet) that ibllo() entry is
+     * there.
+     */
+    ibllo( dev );
+#endif
+
     saveState();
     if (dev_ibsta & ERR)
     {
-	throw gpibDeviceException(device_name, "Error occurs with ibllo on GPIB ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
+	throw gpibDeviceException(device_name, "Error occurs with ibllo on GPIB ", iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
 }
+
 
 /**
  * Clear a specified device.
@@ -791,11 +911,19 @@ void gpibBoard::clr(int dev)
     saveState();
     if (dev_ibsta & ERR)
     {
-	throw gpibDeviceException(device_name, "Error occurs with ibclr on GPIB ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
-
+	throw gpibDeviceException(device_name, "Error occurs with ibclr on GPIB ", iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
 }
+
+
+/**
+ * Get board index
+ */
+int gpibBoard::getBoardInd(void)
+{
+    return board_id;
+}
+
 
 /**
  * Get a list of devices connected on the bus.
@@ -812,7 +940,6 @@ vector<gpibDeviceInfo>& gpibBoard::getConnectedDeviceList()
     Addr4882_t scanlist[MAX_DEV_ON_BOARD+1]; // +1 for terminal NOADDR
     Addr4882_t result[MAX_DEV_ON_BOARD];
     
-    
     inf.clear(); // Empty vector first.
     // Build address list to scan, add NOADDR list terminator 
     for (loop = 0; loop < MAX_DEV_ON_BOARD; loop++)
@@ -826,9 +953,7 @@ vector<gpibDeviceInfo>& gpibBoard::getConnectedDeviceList()
     
     if (dev_ibsta & ERR)
     {
-	throw gpibDeviceException(device_name, "Error occurs with FindLstn on GPIB ",
-	                         iberrToString(), ibstaToString(), getiberr(),getibsta() );
-
+	throw gpibDeviceException(device_name, "Error occurs with FindLstn on GPIB ", iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
 
     nb_listener = dev_ibcnt -1;//-1; MODIF
@@ -848,13 +973,13 @@ vector<gpibDeviceInfo>& gpibBoard::getConnectedDeviceList()
 	{
 	    memset(idn_buffer,0, MAX_DEV_IDN_STR);
 	    Receive(board_id, result[loop], idn_buffer, MAX_DEV_IDN_STR, STOPend);
-	    
-	    // Most of gpib device understand '*IDN?' command, and return a string
-	    // of identification. Some old device does implement this command, like
-	    // Tektronik 2440 who implements his own ID command: 'ID?'. On *IDN?
-	    // cmd the 2440 return char 255, as bad command.
-	    // Thats why if a device return an ID string < 5 byte, or finish in 
-	    //Time Out error, we admit that it does not implement command.
+	    // Most of gpib device understand '*IDN?' command, and return
+            // a string of identification. Some old device does not implement 
+            // this command, like Tektronik 2440 who implements his own ID 
+            // command: 'ID?'. On *IDN? cmd the 2440 returns char 255, 
+            // as bad command. Thats why if a device returns an ID string < 5 
+            // bytes, or finish in Time Out error, we admit that it does not
+            // implement command.
 	    if ( (!(dev_ibsta & ERR)) && (ibcnt > 5) ) // Ibcnt = nb of byte received.
 	    {
 	        t->dev_idn = idn_buffer;

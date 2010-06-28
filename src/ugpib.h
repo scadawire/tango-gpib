@@ -11,7 +11,7 @@
 #include <sys/param.h>
 #include <sys/types.h>
 
-#ifdef NI4882
+#if (defined(NI4882) && !defined(BCU))
 #define	ibfind ibfindA
 #endif
 
@@ -19,7 +19,6 @@ extern	int	ibsta;
 extern  int	iberr;
 extern	unsigned int	ibcnt;
 extern	long	ibcntl;
-
 
 /* GPIB commands */
 #define UNL  0x3f  /* GPIB unlisten command                */
@@ -144,6 +143,11 @@ extern	long	ibcntl;
 #define  IbcEndBitIsNormal  0x001A /* Remove EOS from END bit of IBSTA.       */
 #define  IbcUnAddr          0x001B /* Enable/disable device unaddressing.     */
 #define  IbcSignalNumber    0x001C /* Set UNIX signal number - unsupported */
+
+
+/* Note that 0x001D and 0x001E fields are missing !!! */
+
+
 #define  IbcHSCableLength   0x001F /* Enable/disable high-speed handshaking.  */
 #define  IbcIst             0x0020 /* Set the IST bit.                     */
 #define  IbcRsv             0x0021 /* Set the RSV byte.                    */
@@ -286,11 +290,13 @@ extern int ibdev(int boardid, int padval, int sadval, int tmoval, int eotval, in
 extern int ibdma(int handle, int v);
 extern int ibeos(int handle, int v);
 extern int ibeot(int handle, int v);
-#ifdef NI4882
+
+#if (defined(NI4882) && !defined(BCU))
 extern int ibfindA(char *bdname);
 #else
 extern int ibfind(char *bdname);
 #endif
+
 extern int ibgts(int handle, int v);
 extern int ibist(int handle, int v);
 extern int iblines(int handle, short *lines);
