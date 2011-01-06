@@ -82,16 +82,12 @@ gpibDevice::gpibDevice(string dev_name, string boardname)
     resetState();
     // Get Device by name.
     devID = ibfind((char *) dev_name.c_str() );
+
     saveState();
     device_name = dev_name;
     if ( (devID & ERR) || (dev_ibsta & ERR) )
     {
-        cout << boardname <<":" << device_name << ": An error occurs while executing ibfind()."<< endl;
-        cout << "iberrToString() = " << iberrToString() << endl;
-	cout << "ibstaToString() = " << ibstaToString() << endl;
-	cout << "getiberr() = " << getiberr() << endl;
-	cout << "getibsta() = " << getibsta() << endl;
-	throw gpibDeviceException( device_name, "Error occurs while connecting to GPIB ", iberrToString(), ibstaToString(), getiberr(),getibsta());
+		throw gpibDeviceException( device_name, "Error occurs while connecting to GPIB ", iberrToString(), ibstaToString(), getiberr(),getibsta());
     }
   
     resetState();
@@ -99,13 +95,7 @@ gpibDevice::gpibDevice(string dev_name, string boardname)
     saveState();
     if ( (devID & ERR) || (dev_ibsta & ERR) )
     {
-        cout << boardname <<":" << device_name << ": An error occurs while execution ibask()."<< endl;
-        cout << "iberrToString() = " << iberrToString() << endl;
-	cout << "ibstaToString() = " << ibstaToString() << endl;
-	cout << "getiberr() = " << getiberr() << endl;
-	cout << "getibsta() = " << getibsta() << endl;
-	
-	throw gpibDeviceException( device_name, "Error occurs while getting device Addr ", iberrToString(), ibstaToString(), getiberr(),getibsta());
+		throw gpibDeviceException( device_name, "Error occurs while getting device Addr ", iberrToString(), ibstaToString(), getiberr(),getibsta());
     }
     devAddr = pad;
 
@@ -115,7 +105,7 @@ gpibDevice::gpibDevice(string dev_name, string boardname)
     
     if ((gpib_board < 0) || (gpib_board> MAX_BOARD_INDEX) )
     {
-	throw gpibDeviceException( device_name, "Error occurs while getting device Addr ", "Board index is out of range.", "Value must be between 0 and 7", getiberr(),getibsta());
+		throw gpibDeviceException( device_name, "Error occurs while getting device Addr ", "Board index is out of range.", "Value must be between 0 and 7", getiberr(),getibsta());
     }
 };
 
@@ -137,6 +127,7 @@ gpibDevice::gpibDevice(string dev_name)
 
     // Get Device by name.
     devID = ibfind((char *) dev_name.c_str() );
+
     saveState();
     device_name = dev_name;
     if ( (devID & ERR) || (dev_ibsta & ERR) )
@@ -173,8 +164,7 @@ gpibDevice::gpibDevice(int primary_add, string boardname)
     string ss;
     probe_method = GPIB_PROBE_UNKNOWN;
     resetState();
-
-    cout << " Tango Device name  = " << device_name << endl;
+	device_name = "Not used with this constructor.";
 
     // Save board id.
     ss = boardname.substr(4);
@@ -226,8 +216,6 @@ gpibDevice::gpibDevice(int primary_add)
     int pad;
     probe_method = GPIB_PROBE_UNKNOWN;
     resetState();
-
-    cout << " Tango Device name  = " << device_name << endl;
 
     devID = ibdev(0, primary_add, 0, 13, 1, 0);
     saveState();
@@ -401,7 +389,6 @@ void gpibDevice::findIsAliveMethod()
     if ( (!(dev_ibsta & ERR)) && (alive != 0))
     {
 	probe_method = GPIB_PROBE_DEVICE;
-	cout << "IsAlive method used : On Device." << endl;
 	return;
     }
 
@@ -410,10 +397,8 @@ void gpibDevice::findIsAliveMethod()
     if ( (!(dev_ibsta & ERR)) && (alive != 0))
     {
 	probe_method = GPIB_PROBE_BOARD;
-	cout << "IsAlive method used : On Board." << endl;
 	return;
     }
-	
     cout << "Unable to determine IsAlive method to use. is your hardware turned on ?." << endl;
 }
 
@@ -452,9 +437,9 @@ short gpibDevice::isAlive() {
 
     saveState();
 
-    if (dev_ibsta & ERR || probe_method == GPIB_PROBE_UNKNOWN)
+    if ((dev_ibsta & ERR) || (probe_method == GPIB_PROBE_UNKNOWN))
     {
-	throw gpibDeviceException( device_name,"Device not answering to ibln (isAlive() method).", iberrToString(), ibstaToString(), getiberr(),getibsta() );
+		throw gpibDeviceException( device_name,"Device not answering to ibln (isAlive() method).", iberrToString(), ibstaToString(), getiberr(),getibsta() );
     } 
     return alive;
 }
