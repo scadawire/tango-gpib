@@ -11,9 +11,9 @@
 #define RD_BUFFER_SIZE 		512
 
 /**
- * Drivers are by default limited to 8 gpibBoard per driver.
+ * Drivers are by default limited to 1024 gpibBoard per driver.
  */
-#define MAX_BOARD_INDEX		7
+#define MAX_BOARD_INDEX		1024
 
 /**
  * Maximum number of device on the GPIB bus. 
