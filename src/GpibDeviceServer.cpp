@@ -1,4 +1,4 @@
-static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServer.cpp,v 1.14 2011-07-27 12:01:43 vedder_bruno Exp $";
+static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServer.cpp,v 1.15 2011-07-27 12:57:53 vedder_bruno Exp $";
 //+=============================================================================
 //
 // file :         GpibDeviceServer.cpp
@@ -13,9 +13,14 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //
 // $Author: vedder_bruno $
 //
-// $Revision: 1.14 $
+// $Revision: 1.15 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.14  2011/07/27 12:01:43  vedder_bruno
+// Factorize repeated code that test for the device to be open.
+// This was done in several place and is now replaced by a call to the method
+// throwExceptionIfDeviceIsClose().
+//
 // Revision 1.13  2011/01/06 15:08:00  vedder_bruno
 // Regression : GpibDeviceServer crash on startup when the device does not answer (off).The bug has been fixed.
 //
@@ -1419,43 +1424,37 @@ void GpibDeviceServer::open_by_name()
 Tango::DevVarStringArray *GpibDeviceServer::bcget_connected_device_list()
 {
 	//	Add your own code to control device here
-	
-	Tango::DevVarStringArray	*argout  = new Tango::DevVarStringArray();
-	vector<gpibDeviceInfo> devInfo;
-	
 	DEBUG_STREAM << "GpibDeviceServer::get_connected_device_list(): entering... !" << endl;
 	
+	Tango::DevVarStringArray	*argout  = new Tango::DevVarStringArray();	
 	try
 	{
-		set_state(Tango::MOVING);
-		devInfo = board0->getConnectedDeviceList();
-		set_state(Tango::ON);
-		
+		vector<gpibDeviceInfo> &devInfo = board0->getConnectedDeviceList();
+		argout->length(devInfo.size() );
+		for (long i = 0; i < devInfo.size(); i++)
+		{
+			ostringstream os1;
+			ostringstream os2;
+			
+			os1 << devInfo[i].dev_pad;
+			string pad = " PAD=" + os1.str();
+			
+			os2 << devInfo[i].dev_sad;
+			string sad = " SAD=" + os2.str();
+			(*argout)[i] = CORBA::string_dup( (devInfo[i].dev_idn + pad + sad  ).c_str() );
+		}
 	} 
 	catch (gpibDeviceException e) 
 	{
 		DEBUG_STREAM << "getConnectedDeviceList command error on " << e.getDeviceName() << endl;
 		delete argout;
+		
 		Tango::Except::throw_exception(
 		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
 		    (const char *) e.getiberrMessage().c_str(),
 		    (const char *) e.getibstaMessage().c_str(),
 		    Tango::ERR
 		);
-	}
-	
-	argout->length(devInfo.size() );
-	for (long i = 0; i < devInfo.size(); i++)
-	{
-		ostringstream os1;
-		ostringstream os2;
-		
-		os1 << devInfo[i].dev_pad;
-		string pad = " PAD=" + os1.str();
-		
-		os2 << devInfo[i].dev_sad;
-		string sad = " SAD=" + os2.str();
-		(*argout)[i] = CORBA::string_dup( (devInfo[i].dev_idn + pad + sad  ).c_str() );
 	}
 	return argout;
 }

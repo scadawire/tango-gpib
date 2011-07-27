@@ -184,15 +184,6 @@ public:
 
 
 /**
- * Static vector of gpibDeviceInfo.
- * This var is declared here to allow getConnectedDeviceList method to
- * return reference on object. User can avoid his own vector<gpibDeviceInfo>
- * declaration.
- */
-static vector<gpibDeviceInfo> inf;
-
-
-/**
  * This class is designed to handle gpibBoards. gpidBoard can be
  * seen as gpibDevice with more feature that's why this class inherits from
  * gpibDevice and adds methods to handle board features. 
@@ -220,6 +211,7 @@ public:
 private:
 
 	int board_id;          // Board number.
+	vector<gpibDeviceInfo> inf;
 };
 
 #endif
