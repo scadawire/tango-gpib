@@ -1,0 +1,11 @@
+/**
+ * Device Class Identification:
+ * 
+ * Class Name   :	GpibDeviceServer
+ * Contact      :	vedder@esrf.fr
+ * Class Family :	Communication
+ * Platform     :	All Platforms
+ * Bus          :	GPIB
+ * Manufacturer :	none
+ * Reference    :	
+ */
