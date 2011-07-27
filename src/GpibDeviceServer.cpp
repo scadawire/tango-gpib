@@ -1,9 +1,9 @@
-static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServer.cpp,v 1.13 2011-01-06 15:08:00 vedder_bruno Exp $";
+static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/Gpib/src/GpibDeviceServer.cpp,v 1.14 2011-07-27 12:01:43 vedder_bruno Exp $";
 //+=============================================================================
 //
 // file :         GpibDeviceServer.cpp
 //
-// description :  C++ source for the GpibDeviceServer and its commands. 
+// description :  C++ source for the GpibDeviceServer and its commands.
 //                The class is derived from Device. It represents the
 //                CORBA servant object which will be accessed from the
 //                network. All commands which can be executed on the
@@ -13,9 +13,12 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 //
 // $Author: vedder_bruno $
 //
-// $Revision: 1.13 $
+// $Revision: 1.14 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.13  2011/01/06 15:08:00  vedder_bruno
+// Regression : GpibDeviceServer crash on startup when the device does not answer (off).The bug has been fixed.
+//
 // Revision 1.12  2010/06/28 12:30:44  franc7
 // Added few new commands in server and gpibDevice.cpp for later spec integration
 //
@@ -156,2043 +159,1878 @@ static const char *RcsId = "$Header: /users/chaize/newsvn/cvsroot/Communication/
 namespace GpibDeviceServer_ns
 {
 
-	//+----------------------------------------------------------------------------
-	//
-	// method : 		GpibDeviceServer::GpibDeviceServer(string &s)
-	// 
-	// description : 	constructor for simulated GpibDeviceServer
-	//
-	// in : - cl : Pointer to the DeviceClass object
-	//      - s : Device name 
-	//
-	//-----------------------------------------------------------------------------
-	GpibDeviceServer::GpibDeviceServer(Tango::DeviceClass *cl,string &s):Tango::Device_4Impl(cl,s.c_str())
-	{
-		gpib_device = NULL;	
-		board0 = NULL;
-		gpibDeviceAddress = -1;
-		init_device();
-	}
+//+----------------------------------------------------------------------------
+//
+// method : 		GpibDeviceServer::GpibDeviceServer(string &s)
+//
+// description : 	constructor for simulated GpibDeviceServer
+//
+// in : - cl : Pointer to the DeviceClass object
+//      - s : Device name
+//
+//-----------------------------------------------------------------------------
+GpibDeviceServer::GpibDeviceServer(Tango::DeviceClass *cl,string &s):Tango::Device_4Impl(cl,s.c_str())
+{
+	gpib_device = NULL;
+	board0 = NULL;
+	gpibDeviceAddress = -1;
+	init_device();
+}
 
-	GpibDeviceServer::GpibDeviceServer(Tango::DeviceClass *cl,const char *s):Tango::Device_4Impl(cl,s)
-	{
-		gpib_device = NULL;	
-		board0 = NULL;
-		gpibDeviceAddress = -1;
-		init_device();
-	}
+GpibDeviceServer::GpibDeviceServer(Tango::DeviceClass *cl,const char *s):Tango::Device_4Impl(cl,s)
+{
+	gpib_device = NULL;
+	board0 = NULL;
+	gpibDeviceAddress = -1;
+	init_device();
+}
 
-	GpibDeviceServer::GpibDeviceServer(Tango::DeviceClass *cl,const char *s,const char *d)
+GpibDeviceServer::GpibDeviceServer(Tango::DeviceClass *cl,const char *s,const char *d)
 		:Tango::Device_4Impl(cl,s,d)
+{
+	gpib_device = NULL;
+	board0 = NULL;
+	gpibDeviceAddress = -1;
+	init_device();
+}
+
+
+//+----------------------------------------------------------------------------
+//
+// method : 		GpibDeviceServer::delete_device()
+//
+// description : 	will be called at device destruction or at init command.
+//
+//-----------------------------------------------------------------------------
+void GpibDeviceServer::delete_device()
+{
+	// AJOUT
+	//	Delete device's allocated object
+	//	delete gpib_device;
+	//	gpib_device = NULL;
+	// board 0 ?
+	// TODO  clear & close ....
+}
+
+
+//+----------------------------------------------------------------------------
+//
+// method : 		GpibDeviceServer::init_device()
+//
+// description : 	will be called at device initialization.
+//
+//-----------------------------------------------------------------------------
+
+void GpibDeviceServer::init_device()
+{
+	INFO_STREAM << "GpibDeviceServer::GpibDeviceServer() create device " << device_name << endl;
+	
+	// Initialise variables to default values
+	//--------------------------------------------
+	get_device_property();
+	
+	cout << "Starting Tango GPIB server (Built on " << __DATE__ << " " << __TIME__ << ")." << endl;
+	
+	dev_open = false;	// No gpib device opened.
+	
+	try
 	{
-		gpib_device = NULL;	
-		board0 = NULL;
-		gpibDeviceAddress = -1;
-		init_device();
+		INFO_STREAM << "Looking for Board for Tango device:" << device_name << endl;
+		board0 = new gpibBoard( gpibBoardName );
+		cout << "gpib board '" << gpibBoardName << "' has been found." << endl;
 	}
-
-
-	//+----------------------------------------------------------------------------
-	//
-	// method : 		GpibDeviceServer::delete_device()
-	// 
-	// description : 	will be called at device destruction or at init command.
-	//
-	//-----------------------------------------------------------------------------
-	void GpibDeviceServer::delete_device()
+	catch (gpibDeviceException e)
 	{
-		// AJOUT
-		//	Delete device's allocated object
-		//	delete gpib_device;
-		//	gpib_device = NULL;
-		// board 0 ?
-		// TODO  clear & close ....
+		cout << "No GPIB board found (gpibBoardName = '"<< gpibBoardName <<"'). " << endl;
 	}
-
-
-	//+----------------------------------------------------------------------------
-	//
-	// method : 		GpibDeviceServer::init_device()
-	// 
-	// description : 	will be called at device initialization.
-	//
-	//-----------------------------------------------------------------------------
-
-	void GpibDeviceServer::init_device()
+	
+	// come here when successfully created board object;
+	// so can get board index (we use getBoardInd() function
+	// implemented in gpibBoard class); alternative would be to
+	// extract board index here from the gpibBoardName.
+	// We'll need this for GetBoardIndex() command.
+	
+	// Test board0 against NULL to avoid core dump !
+	if (board0 != NULL) boardind = board0->getBoardInd();
+	
+	// gpib_device is initialised in Constructor !
+	if (gpib_device != NULL)
 	{
-		INFO_STREAM << "GpibDeviceServer::GpibDeviceServer() create device " << device_name << endl;
-
-		// Initialise variables to default values
-		//--------------------------------------------
-		get_device_property();
-
-		cout << "Starting Tango GPIB server (Built on " << __DATE__ << " " << __TIME__ << ")." << endl;
-
-		dev_open = false;	// No gpib device opened.
-
-		try 
+		delete gpib_device;
+		gpib_device = NULL;
+	}
+	
+	
+	// Try to open device, controlled by the board gpibBoardName,
+	// by name if its name (= gpibDeviceName) exists in DB
+	// --> use the 1st constructor for gpibDevice class.
+	if ((dev_open == false) && (gpibDeviceName.length() != 0))
+	{
+		cout << "Trying to open gpib device (assigned beforehand with ibconf): '" << gpibBoardName << "::" << gpibDeviceName <<" : ";
+		
+		try
 		{
-			INFO_STREAM << "Looking for Board for Tango device:" << device_name << endl;	    
-			board0 = new gpibBoard( gpibBoardName );
-			cout << "gpib board '" << gpibBoardName << "' has been found." << endl;
-		} 
-		catch (gpibDeviceException e) 
-		{
-			cout << "No GPIB board found (gpibBoardName = '"<< gpibBoardName <<"'). " << endl;
+			if(gpib_device != NULL)
+			{
+				delete gpib_device;// AJOUT
+				gpib_device = NULL;
+			}
+			
+			gpib_device = new gpibDevice(gpibDeviceName, gpibBoardName);
+			
+			// Force exception if device not listening (Off)
+			int sb = gpib_device->isAlive();
+			
+			if (sb <=0)
+				throw gpibDeviceException((string)"init_device()",(string)"Device is not listening",(string)"gpib_device->isAlive() returns value <= 0",(string)"", 0, 0);
+			dev_open = true;
+			cout << "SUCCESS." << endl;
 		}
+		catch (gpibDeviceException f)
+		{
+			cout << "FAILED (more info on ERROR_STREAM)" << endl;
+			if (gpib_device) delete gpib_device;// AJOUT
+			set_state(Tango::FAULT);
+			set_status("Gpib device is not responding.");
+			gpib_device = NULL;
+			
+			ERROR_STREAM << "gpibDeviceException from " << f.getDeviceName() << endl;
+			ERROR_STREAM << f.getMessage() << endl;
+			ERROR_STREAM << f.getiberrMessage() << endl;
+			ERROR_STREAM << f.getibstaMessage() << endl;
+		}
+		catch (...)
+		{
+			cout << "UNEXPECTED EXCEPTION !!!" << endl;
+			exit(-1);
+		}
+	}
+	
+	
+	// try to open device by name if gpibDeviceName exists in DB
+	// assuming that the board index is 0 (i.e. the gpibBoardName = gpib0
+	// in case it was not put in DB --> use the 2nd constructor for
+	// gpibDevice class).
+	if ((dev_open == false) && (gpibDeviceName.length() != 0))
+	{
+		cout << "Trying to open gpib device (assigned beforehand with ibconf): 0::" << gpibDeviceName <<" : ";
+		
+		try
+		{
+			if (gpib_device != NULL)
+			{
+				delete gpib_device;// AJOUT
+				gpib_device = NULL;
+			}
+			
+			gpib_device = new gpibDevice( gpibDeviceName );
+			// Force exception if device not listening (Off)
+			int sb = gpib_device->isAlive();
+			
+			if (sb <=0)
+				throw gpibDeviceException((string)"init_device()",(string)"Device is not listening",(string)"gpib_device->isAlive() returns value <= 0",(string)"", 0, 0);
+			dev_open = true;
+			cout << "SUCCESS." << endl;
+		}
+		catch (gpibDeviceException f)
+		{
+			cout << "FAILED (more info on ERROR_STREAM)" << endl;
+			if (gpib_device) delete gpib_device;// AJOUT
+			set_state(Tango::FAULT);
+			set_status("Gpib device is not responding.");
+			gpib_device = NULL;
+			
+			ERROR_STREAM << "gpibDeviceException from " << f.getDeviceName() << endl;
+			ERROR_STREAM << f.getMessage() << endl;
+			ERROR_STREAM << f.getiberrMessage() << endl;
+			ERROR_STREAM << f.getibstaMessage() << endl;
+		}
+		catch (...)
+		{
+			cout << "UNEXPECTED EXCEPTION !!!" << endl;
+			exit(-1);
+		}
+	}
+	
+	
+	// Try to open device, controlled by the board gpibBoardName,
+	// by address if its primary address (= gpibDeviceAddress) exists in DB
+	// --> use the 3rd constructor for gpibDevice class. This is newly
+	//     added constructor to allow gpib device with given primary
+	//     address to be controlled by other than gpib0 board
+	if ((dev_open == false) && (gpibBoardName.length() != 0) && (gpibDeviceAddress != -1))
+	{
+		cout << "Trying to open gpib device " << gpibBoardName <<"::" << gpibDeviceAddress << " : ";
+		try
+		{
+			if (gpib_device != NULL)
+			{
+				delete gpib_device;// AJOUT
+				gpib_device = NULL;
+			}
+			
+			gpib_device = new gpibDevice( gpibDeviceAddress, gpibBoardName );
+			// Force exception if device not listening (Off)
+			int sb = gpib_device->isAlive();
+			
+			if (sb <=0)
+				throw gpibDeviceException((string)"init_device()",(string)"Device is not listening",(string)"gpib_device->isAlive() returns value <= 0",(string)"", 0, 0);
+			dev_open = true;
+			cout << "SUCCESS." << endl;
+		}
+		catch (gpibDeviceException f)
+		{
+			cout << "FAILED (more info on ERROR_STREAM)" << endl;
+			if (gpib_device) delete gpib_device;// AJOUT
+			set_state(Tango::FAULT);
+			set_status("Gpib device is not responding.");
+			gpib_device = NULL;
+			
+			ERROR_STREAM << "gpibDeviceException from " << f.getDeviceName() << endl;
+			ERROR_STREAM << f.getMessage() << endl;
+			ERROR_STREAM << f.getiberrMessage() << endl;
+			ERROR_STREAM << f.getibstaMessage() << endl;
+		}
+		catch (...)
+		{
+			cout << "UNEXPECTED EXCEPTION !!!" << endl;
+			exit(-1);
+		}
+	}
+	
+	
+	// Try to open device by address if its primary address
+	// (= gpibDeviceAddress) exists in DB assuming that the board index
+	// is 0 (board = gpib0) -> use the 4th constructor for the
+	// gpibDevice class.
+	
+	if ((dev_open == false) && (gpibDeviceAddress != -1))
+	{
+		cout << "Trying to open gpib device board0::" << gpibDeviceAddress << " : ";
+		try
+		{
+			gpib_device = new gpibDevice((int) gpibDeviceAddress);
+			
+			// Force exception if device not listening (Off)
+			int sb = gpib_device->isAlive();
+			
+			if (sb <=0)
+				throw gpibDeviceException((string)"init_device()",(string)"Device is not listening",(string)"gpib_device->isAlive() returns value <= 0",(string)"", 0, 0);
+			dev_open = true;
+			cout << "SUCCESS." << endl;
+		}
+		catch (gpibDeviceException f)
+		{
+			cout << "FAILED (more info on ERROR_STREAM)" << endl;
+			if (gpib_device) delete gpib_device;// AJOUT
+			set_state(Tango::FAULT);
+			set_status("Gpib device is not responding.");
+			gpib_device = NULL;
+			
+			ERROR_STREAM << "gpibDeviceException from " << f.getDeviceName() << endl;
+			ERROR_STREAM << f.getMessage() << endl;
+			ERROR_STREAM << f.getiberrMessage() << endl;
+			ERROR_STREAM << f.getibstaMessage() << endl;
+		}
+		catch (...)
+		{
+			cout << "UNEXPECTED EXCEPTION !!!" << endl;
+			exit(-1);
+		}
+	}
+	
+	if (gpib_device != NULL)
+	{
+		gpib_device->setTimeOut(gpibDeviceTimeOut);	// Set Time Out.
+		set_state(Tango::ON);
+		set_status("Gpib device is OK.");
+	}
+}
 
-		// come here when successfully created board object;
-		// so can get board index (we use getBoardInd() function
-		// implemented in gpibBoard class); alternative would be to
-		// extract board index here from the gpibBoardName.
-		// We'll need this for GetBoardIndex() command.
 
-		// Test board0 against NULL to avoid core dump !
-		if (board0 != NULL) boardind = board0->getBoardInd();
+//+----------------------------------------------------------------------------
+//
+// method : 		GpibDeviceServer::readDeviceProperies()
+//
+// description : 	Read the device properties from database.
+//
+//-----------------------------------------------------------------------------
+void GpibDeviceServer::get_device_property()
+{
+	//	Initialize your default values here.
+	//------------------------------------------
+	gpibDeviceTimeOut = 13; 		/* 10s predefined value */
+	gpibDeviceAddress = 0xFF;		/* Unused set to zero	*/
+	gpibDeviceName = "";			/* Unused set to zero	*/
+	gpibDeviceSecondaryAddress = 0;		/* Unused set to zero	*/
+	
+	//	Read device properties from database.(Automatic code generation)
+	//-------------------------------------------------------------
+	Tango::DbData	dev_prop;
+	dev_prop.push_back(Tango::DbDatum("GpibDeviceName"));
+	dev_prop.push_back(Tango::DbDatum("GpibDeviceAddress"));
+	dev_prop.push_back(Tango::DbDatum("GpibDeviceTimeOut"));
+	dev_prop.push_back(Tango::DbDatum("GpibDeviceSecondaryAddress"));
+	dev_prop.push_back(Tango::DbDatum("GpibBoardName"));
+	
+	//	Call database and extract values
+	//--------------------------------------------
+	if (Tango::Util::instance()->_UseDb==true)
+		get_db_device()->get_property(dev_prop);
+	Tango::DbDatum	def_prop, cl_prop;
+	GpibDeviceServerClass	*ds_class =
+	    (static_cast<GpibDeviceServerClass *>(get_device_class()));
+	int	i = -1;
+	
+	//      Try to initialize GpibDeviceName from class property
+	cl_prop = ds_class->get_class_property(dev_prop[++i].name);
+	if (cl_prop.is_empty()==false)	cl_prop  >>  gpibDeviceName;
+	else {
+		//      Try to initialize GpibDeviceName from default device value
+		def_prop = ds_class->get_default_device_property(dev_prop[i].name);
+		if (def_prop.is_empty()==false)	def_prop  >>  gpibDeviceName;
+	}
+	//	And try to extract GpibDeviceName value from database
+	if (dev_prop[i].is_empty()==false)	dev_prop[i]  >>  gpibDeviceName;
+	
+	//	Try to initialize GpibDeviceAddress from class property
+	cl_prop = ds_class->get_class_property(dev_prop[++i].name);
+	if (cl_prop.is_empty()==false)	cl_prop  >>  gpibDeviceAddress;
+	else {
+		//	Try to initialize GpibDeviceAddress from default device value
+		def_prop = ds_class->get_default_device_property(dev_prop[i].name);
+		if (def_prop.is_empty()==false)	def_prop  >>  gpibDeviceAddress;
+	}
+	//	And try to extract GpibDeviceAddress value from database
+	if (dev_prop[i].is_empty()==false)	dev_prop[i]  >>  gpibDeviceAddress;
+	
+	//	Try to initialize GpibDeviceTimeOut from class property
+	cl_prop = ds_class->get_class_property(dev_prop[++i].name);
+	if (cl_prop.is_empty()==false)	cl_prop  >>  gpibDeviceTimeOut;
+	else {
+		//	Try to initialize GpibDeviceTimeOut from default device value
+		def_prop = ds_class->get_default_device_property(dev_prop[i].name);
+		if (def_prop.is_empty()==false)	def_prop  >>  gpibDeviceTimeOut;
+	}
+	//	And try to extract GpibDeviceTimeOut value from database
+	if (dev_prop[i].is_empty()==false)	dev_prop[i]  >>  gpibDeviceTimeOut;
+	
+	//	Try to initialize GpibDeviceSecondaryAddress from class property
+	cl_prop = ds_class->get_class_property(dev_prop[++i].name);
+	if (cl_prop.is_empty()==false)	cl_prop  >>  gpibDeviceSecondaryAddress;
+	else {
+		//	Try to initialize GpibDeviceSecondaryAddress from default device value
+		def_prop = ds_class->get_default_device_property(dev_prop[i].name);
+		if (def_prop.is_empty()==false)	def_prop  >>  gpibDeviceSecondaryAddress;
+	}
+	//	And try to extract GpibDeviceSecondaryAddress value from database
+	if (dev_prop[i].is_empty()==false)	dev_prop[i]  >>  gpibDeviceSecondaryAddress;
+	
+	//	Try to initialize GpibBoardName from class property
+	cl_prop = ds_class->get_class_property(dev_prop[++i].name);
+	if (cl_prop.is_empty()==false)	cl_prop  >>  gpibBoardName;
+	else {
+		//	Try to initialize GpibBoardName from default device value
+		def_prop = ds_class->get_default_device_property(dev_prop[i].name);
+		if (def_prop.is_empty()==false)	def_prop  >>  gpibBoardName;
+	}
+	//	And try to extract GpibBoardName value from database
+	if (dev_prop[i].is_empty()==false)	dev_prop[i]  >>  gpibBoardName;
+	
+	
+	
+	//	End of Automatic code generation
+	//-------------------------------------------------------------
+	
+	if ( (dev_prop[0].is_empty() == true) && (dev_prop[1].is_empty() == true) )
+	{
+		cout << "Mandatory properties 'gpibDeviceName' and 'gpibDeviceAddress' are not defined" << endl;
+		cout << "in the Database. Please define at least one of them. Exiting." << endl;
+		exit(-1);
+	}
+}
 
-		// gpib_device is initialised in Constructor !
-		if (gpib_device != NULL) 
+
+//+----------------------------------------------------------------------------
+//
+// method : 		GpibDeviceServer::always_executed_hook()
+//
+// description : 	method always executed before any command is executed
+//
+//-----------------------------------------------------------------------------
+void GpibDeviceServer::always_executed_hook()
+{
+	short sb;
+	if ( (board0 != NULL) && (gpib_device != NULL) && (dev_open == true) )
+	{
+		try
+		{
+			sb = gpib_device->isAlive(); 		// Try to get Status byte
+			if (sb != 0)
+			{
+				set_state(Tango::ON);
+				set_status("GPIB Device is On.");
+			}
+			else
+			{
+				set_state(Tango::FAULT);
+				set_status("GPIB Device is Off.");
+			}
+		}
+		catch (gpibDeviceException e)
+		{
+			set_state(Tango::FAULT);
+			set_status("GPIB Device is not responding.");
+		}
+	}
+	else
+	{
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on	"+ gpibDeviceName).c_str(),
+		    (const char *) "This device is not reachable by server : maybe is the device off ?",
+		    (const char *) "An error occurs when looking for device.",
+		    Tango::ERR
+		);
+	}
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::write
+*
+*	description:	method to execute "Write"
+*	This command send a string to the device. Throws devFailed on error.
+*
+* @param	argin	String to send to the device
+*
+*/
+//+------------------------------------------------------------------
+void GpibDeviceServer::write(Tango::DevString argin)
+{
+	DEBUG_STREAM << "GpibDeviceServer::write(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	throwExceptionIfDeviceIsClosed();
+	
+	try
+	{
+		gpib_device->write(argin);
+	}
+	catch (gpibDeviceException e)
+	{
+		DEBUG_STREAM << "Write command error on " << e.getDeviceName() << endl;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::read
+*
+*	description:	method to execute "Read"
+*	This command reads a string from a gpib device. 
+*      Throws an DevFailed exception on error
+*
+* @return	Returned string.
+*
+*/
+//+------------------------------------------------------------------
+Tango::DevString GpibDeviceServer::read()
+{
+	//	POGO has generated a method core with argout allocation.
+	//	If you would like to use a static reference without copying,
+	//	See "TANGO Device Server Programmer's Manual"
+	//		(chapter : Writing a TANGO DS / Exchanging data)
+	//------------------------------------------------------------
+	Tango::DevString	argout  = new char[RD_BUFFER_SIZE+1]; // AJOUT +1
+	string ret = "";
+	DEBUG_STREAM << "GpibDeviceServer::read(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	if ( !dev_open )	// Trying to read a non-open device. Generate exception.
+	{
+		DEBUG_STREAM << "Read command error." << endl;
+		delete[] argout;
+		Tango::Except::throw_exception(
+		    (const char *) "gpibDeviceException.",
+		    (const char *) "Attempt to read a not opened device.",
+		    (const char *) "Device must be open before read operation.",
+		    Tango::ERR
+		);
+	}
+	
+	try
+	{
+		ret = gpib_device->read();
+		memset(argout,0, (RD_BUFFER_SIZE+1));   // AJOUT +1
+		strcpy(argout, ret.c_str() );
+	}
+	catch (gpibDeviceException e)
+	{
+		DEBUG_STREAM << "Read command error on " << e.getDeviceName() << endl;
+		delete[] argout;
+		//cout << "Read error: err="<< e.getErrorValue()<<" state="<< e.getStateValue() << endl;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+	return argout;
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::close
+*
+*	description:	method to execute "Close"
+*	Close a previously opened gpib device.
+*	Throws exception on error.
+*
+*
+*/
+//+------------------------------------------------------------------
+void GpibDeviceServer::close()
+{
+	DEBUG_STREAM << "GpibDeviceServer::close(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	throwExceptionIfDeviceIsClosed();
+	
+	try
+	{
+		gpib_device->setOffLine();
+		if(gpib_device)
 		{
 			delete gpib_device;
 			gpib_device = NULL;
 		}
+		dev_open = false;
+		set_state(Tango::OFF);
+		
+	} catch (gpibDeviceException e) {
+	
+		DEBUG_STREAM << "Close command error on " << e.getDeviceName() << endl;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+}
 
 
-		// Try to open device, controlled by the board gpibBoardName,
-		// by name if its name (= gpibDeviceName) exists in DB
-		// --> use the 1st constructor for gpibDevice class. 
-		if ((dev_open == false) && (gpibDeviceName.length() != 0))
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::read_long_string
+*
+*	description:	method to execute "ReadLongString"
+*	For most gpib device the read command is enough to talk with the device.
+*      In certain case, the gpibDevice returns a very big string, which is
+*      larger than the read buffer. For concret example, 
+*      on :CALC:DATA? command, the hp3588 returns 400 strings representing a
+*	spectrum, for a total size > 4Kbytes. This method reads these sort of 
+*      long string.
+*	For efficiency, its better to use the read command instead of 
+*      readLongString. This method is provided for exceptionnal case. 
+*      Throws DevFailed on error.
+*
+* @param	argin	Max expected string length.
+* @return	The readed string.
+*
+*/
+//+------------------------------------------------------------------
+Tango::DevString GpibDeviceServer::read_long_string(Tango::DevLong argin)
+{
+	//	POGO has generated a method core with argout allocation.
+	//	If you would like to use a static reference without copying,
+	//	See "TANGO Device Server Programmer's Manual"
+	//		(chapter : Writing a TANGO DS / Exchanging data)
+	//------------------------------------------------------------
+	Tango::DevString	argout  = new char[argin];
+	string ret = "";
+	DEBUG_STREAM << "GpibDeviceServer::read_long_string(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	if ( !dev_open )	// Trying to read a non-open device. Generate exception.
+	{
+		delete[] argout;
+		DEBUG_STREAM << "ReadLongString command error." << endl;
+		Tango::Except::throw_exception(
+		    (const char *) "gpibDeviceException.",
+		    (const char *) "Attempt to read a not opened device.",
+		    (const char *) "Device must be open before read operation.",
+		    Tango::ERR
+		);
+	}
+	
+	try
+	{
+		ret = gpib_device->read(argin);
+		strcpy(argout, ret.c_str() );
+		
+	} catch (gpibDeviceException e) {
+	
+		DEBUG_STREAM << "ReadLongString command error on " << e.getDeviceName() << endl;
+		delete[] argout;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+	return argout;
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::get_name
+*
+*	description:	method to execute "GetName"
+*	Return the gpib device name, as defined on the gpib Driver 
+*      (see them with ibconf tool).
+*	Throws DevFailed on error
+*
+* @return	gpib device name
+*
+*/
+//+------------------------------------------------------------------
+Tango::DevString GpibDeviceServer::get_name()
+{
+	//	POGO has generated a method core with argout allocation.
+	//	If you would like to use a static reference without copying,
+	//	See "TANGO Device Server Programmer's Manual"
+	//		(chapter : Writing a TANGO DS / Exchanging data)
+	//------------------------------------------------------------
+	Tango::DevString	argout  = new char[RD_BUFFER_SIZE+1]; // AJOUT +1
+	string ret = "";
+	DEBUG_STREAM << "GpibDeviceServer::get_name(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	if ( !dev_open )	// Trying to read a non-open device. Generate exception.
+	{
+		delete[] argout;
+		DEBUG_STREAM << "getName command error." << endl;
+		Tango::Except::throw_exception(
+		    (const char *) "gpibDeviceException.",
+		    (const char *) "Attempt to getName from a not opened device.",
+		    (const char *) "Device must be open before getName operation.",
+		    Tango::ERR
+		);
+	}
+	
+	try
+	{
+		ret = gpib_device->getName();
+		memset(argout,0, (RD_BUFFER_SIZE+1));  // AJOUT +1
+		strcpy(argout, ret.c_str() );
+		
+	} catch (gpibDeviceException e) {
+	
+		DEBUG_STREAM << "getName command error on " << e.getDeviceName() << endl;
+		delete[] argout;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+	return argout;
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::local
+*
+*	description:	method to execute "Local"
+*	Set the gpib device in local mode. Throws DevFailed on error.
+*
+*
+*/
+//+------------------------------------------------------------------
+void GpibDeviceServer::local()
+{
+	DEBUG_STREAM << "GpibDeviceServer::local(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	throwExceptionIfDeviceIsClosed();
+	
+	try
+	{
+		gpib_device->goToLocalMode();
+		
+	} catch (gpibDeviceException e) {
+	
+		DEBUG_STREAM << "Local command error on " << e.getDeviceName() << endl;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::remote
+*
+*	description:	method to execute "Remote"
+*	Set the gpib device in remote mode. This command is here for 
+*      compatibility, since network access to a gpib Device will 
+*      automatically turn it to remote mode.
+*	Throws DevFailed on error.
+*
+*
+*/
+//+------------------------------------------------------------------
+void GpibDeviceServer::remote()
+{
+	DEBUG_STREAM << "GpibDeviceServer::remote(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	throwExceptionIfDeviceIsClosed();
+	
+	try
+	{
+		gpib_device->goToRemoteMode();
+		
+	} catch (gpibDeviceException e) {
+	
+		DEBUG_STREAM << "Remote command error on " << e.getDeviceName() << endl;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::getiberr
+*
+*	description:	method to execute "Getiberr"
+*	This command returns last gpib device error code (lib gpib iberr).
+*	Throws DevFailed on error.
+*
+* @return	no argout
+*
+*/
+//+------------------------------------------------------------------
+Tango::DevLong GpibDeviceServer::getiberr()
+{
+	Tango::DevLong	argout ;
+	DEBUG_STREAM << "GpibDeviceServer::getiberr(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	throwExceptionIfDeviceIsClosed();
+	
+	argout = gpib_device->getiberr(); // This is soft command. No gpibDeviceException here.
+	return argout;
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::getibsta
+*
+*	description:	method to execute "Getibsta"
+*	This command returns last gpib device state code (lib gpib ibsta).
+*	Throws DevFailed on error.
+*
+* @return	no argout
+*
+*/
+//+------------------------------------------------------------------
+Tango::DevLong GpibDeviceServer::getibsta()
+{
+	Tango::DevLong	argout ;
+	DEBUG_STREAM << "GpibDeviceServer::getibsta(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	throwExceptionIfDeviceIsClosed();
+	argout = gpib_device->getibsta(); // This is soft command. No gpibDeviceException here.
+	return argout;
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::getibcnt
+*
+*	description:	method to execute "Getibcnt"
+*	This command returns last gpib device count var (lib gpib ibcnt).
+*	Throws DevFailed on error.
+*
+* @return	no argout
+*
+*/
+//+------------------------------------------------------------------
+Tango::DevULong GpibDeviceServer::getibcnt()
+{
+	Tango::DevULong	argout ;
+	DEBUG_STREAM << "GpibDeviceServer::getibcnt(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	throwExceptionIfDeviceIsClosed();
+	argout = gpib_device->getibcnt(); // This is soft command. No gpibDeviceException here.
+	return argout;
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::clear
+*
+*	description:	method to execute "Clear"
+*	This command clears the gpib device. Throws DevFailed exception on error.
+*
+*
+*/
+//+------------------------------------------------------------------
+void GpibDeviceServer::clear()
+{
+	DEBUG_STREAM << "GpibDeviceServer::clear(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	throwExceptionIfDeviceIsClosed();
+	
+	try
+	{
+		gpib_device->clear();
+		
+	} catch (gpibDeviceException e) {
+		DEBUG_STREAM << "Clear command error on " << e.getDeviceName() << endl;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::set_time_out
+*
+*	description:	method to execute "SetTimeOut"
+*	This command set Time Out value for the gpib device.
+*	Warning these values are predefined, cf gpibDevice.h
+*	accepted value are [0-15]. Throws DevFailed exception on error.
+*
+* @param	argin	accepted value are [0-15]
+*
+*/
+//+------------------------------------------------------------------
+void GpibDeviceServer::set_time_out(Tango::DevShort argin)
+{
+	DEBUG_STREAM << "GpibDeviceServer::set_time_out(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	throwExceptionIfDeviceIsClosed();
+	
+	try
+	{
+		gpib_device->setTimeOut(argin);
+		
+	} catch (gpibDeviceException e) {
+		DEBUG_STREAM << "SetTimeOut command error on " << e.getDeviceName() << endl;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::bcsend_ifc
+*
+*	description:	method to execute "BCsendIFC"
+*	This commands send IFC to the gpib Board0.
+*	So the board becomes Controller In Charge and devices are cleared.
+*	All commands beginning with'BC' are Board Commands.
+*	Throws DevFailed exception on error.
+*
+*
+*/
+//+------------------------------------------------------------------
+void GpibDeviceServer::bcsend_ifc()
+{
+	DEBUG_STREAM << "GpibDeviceServer::bcsend_ifc(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	// We don't check that board0 is open since this is done in the init_device method.
+	try
+	{
+		board0->sendIFC();
+		
+	} catch (gpibDeviceException e) {
+		DEBUG_STREAM << "BCsendIFC command error on " << e.getDeviceName() << endl;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::bcclr
+*
+*	description:	method to execute "BCclr"
+*	This command clears a specified device.
+*	Throws DevFailed exception on error.
+*
+* @param	argin	handler of the device to clear.
+*
+*/
+//+------------------------------------------------------------------
+void GpibDeviceServer::bcclr(Tango::DevLong argin)
+{
+	DEBUG_STREAM << "GpibDeviceServer::bcclr(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	// We don't check that board0 is open since this is done in the init_device method.
+	try
+	{
+		board0->clr(argin);
+		
+	} catch (gpibDeviceException e) {
+		DEBUG_STREAM << "BCclr command error on " << e.getDeviceName() << endl;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::get_device_id
+*
+*	description:	method to execute "GetDeviceID"
+*	This command return internal gpib device ID.
+*	This is usefull for board command using this ID to acces devices, as BCclr cmd.
+*	Throws DevFailed exception on error.
+*
+* @return	no argout
+*
+*/
+//+------------------------------------------------------------------
+Tango::DevLong GpibDeviceServer::get_device_id()
+{
+	Tango::DevLong	argout ;
+	DEBUG_STREAM << "GpibDeviceServer::get_device_id(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	throwExceptionIfDeviceIsClosed();
+	
+	argout = gpib_device->getDeviceID(); // This is soft command. No gpibDeviceException here.
+	return argout;
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::bcllo
+*
+*	description:	method to execute "BCllo"
+*	This command send a local lockout to the specified device.
+*	Throws DevFailed exception on error.
+*
+* @param	argin	Device ID
+*
+*/
+//+------------------------------------------------------------------
+void GpibDeviceServer::bcllo(Tango::DevLong argin)
+{
+	DEBUG_STREAM << "GpibDeviceServer::bcllo(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	try
+	{
+		board0->llo(argin);
+		
+	} catch (gpibDeviceException e) {
+		DEBUG_STREAM << "BCllo command error on " << e.getDeviceName() << endl;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::bccmd
+*
+*	description:	method to execute "BCcmd"
+*	Send a GPIB command message.
+*	This method is not used to transmit programming instruction to devices
+*	this kind of instructions are transmitted with the read / write methods.
+*	As done in write method, cmd automatically append EOS, as defined with
+*	setEOS method.
+*
+* @param	argin	Command string.
+*
+*/
+//+------------------------------------------------------------------
+void GpibDeviceServer::bccmd(Tango::DevString argin)
+{
+	DEBUG_STREAM << "GpibDeviceServer::bccmd(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	try
+	{
+		board0->cmd(argin);
+		
+	} catch (gpibDeviceException e) {
+		DEBUG_STREAM << "BCcmd command error on " << e.getDeviceName() << endl;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::open
+*
+*	description:	method to execute "Open"
+*	This command opens a gpib device using the gpibDeviceAddress property,
+*      assuming that the device is controlled by the board gpib0.
+*      Therefore it uses the 4th gpibDevice constructor.
+*	This command should not be used since gpib device is open on device 
+*      server initialisation.
+*	Its provided in case of problem to do it manually. 
+*      Throws DevFailed exception on error.
+*	This command is allowed on fault to accept reconnection.
+*
+*
+*/
+//+------------------------------------------------------------------
+void GpibDeviceServer::open()
+{
+	DEBUG_STREAM << "GpibDeviceServer::open(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	if ( dev_open )	// Trying to open an already opened device. Generate exception.
+	{
+		DEBUG_STREAM << "Open command error." << endl;
+		Tango::Except::throw_exception(
+		    (const char *) "gpibDeviceException.",
+		    (const char *) "Attempt to open an already open device.",
+		    (const char *) "Device must be closed before open operation.",
+		    Tango::ERR
+		);
+	}
+	
+	try
+	{
+		gpib_device = new gpibDevice( gpibDeviceAddress );
+		//	    gpib_device->write("AYT"); 	// Are You There ?
+		if (gpib_device->isAlive() )
 		{
-			cout << "Trying to open gpib device (assigned beforehand with ibconf): '" << gpibBoardName << "::" << gpibDeviceName <<" : ";
-
-			try 
-			{
-				if(gpib_device != NULL) 
-				{
-					delete gpib_device;// AJOUT
-					gpib_device = NULL;
-				}
-
-				gpib_device = new gpibDevice(gpibDeviceName, gpibBoardName);
-
-				// Force exception if device not listening (Off)
-				int sb = gpib_device->isAlive();
-
-				if (sb <=0) 
-					throw gpibDeviceException((string)"init_device()",(string)"Device is not listening",(string)"gpib_device->isAlive() returns value <= 0",(string)"", 0, 0);
-				dev_open = true;
-				cout << "SUCCESS." << endl;	    
-			} 
-			catch (gpibDeviceException f) 
-			{
-				cout << "FAILED (more info on ERROR_STREAM)" << endl;
-				if (gpib_device) delete gpib_device;// AJOUT
-				set_state(Tango::FAULT);
-				set_status("Gpib device is not responding.");
-				gpib_device = NULL;
-
-				ERROR_STREAM << "gpibDeviceException from " << f.getDeviceName() << endl;			
-				ERROR_STREAM << f.getMessage() << endl;
-				ERROR_STREAM << f.getiberrMessage() << endl;
-				ERROR_STREAM << f.getibstaMessage() << endl;
-			} 
-			catch (...) 
-			{
-				cout << "UNEXPECTED EXCEPTION !!!" << endl;	
-				exit(-1);
-			}
-		} 
-
-
-		// try to open device by name if gpibDeviceName exists in DB
-		// assuming that the board index is 0 (i.e. the gpibBoardName = gpib0
-		// in case it was not put in DB --> use the 2nd constructor for
-		// gpibDevice class).
-		if ((dev_open == false) && (gpibDeviceName.length() != 0))
-		{
-			cout << "Trying to open gpib device (assigned beforehand with ibconf): 0::" << gpibDeviceName <<" : ";
-			
-			try
-			{
-				if (gpib_device != NULL)
-				{
-					delete gpib_device;// AJOUT
-					gpib_device = NULL;
-				}
-
-				gpib_device = new gpibDevice( gpibDeviceName );
-				// Force exception if device not listening (Off)
-				int sb = gpib_device->isAlive();
-
-				if (sb <=0) 
-					throw gpibDeviceException((string)"init_device()",(string)"Device is not listening",(string)"gpib_device->isAlive() returns value <= 0",(string)"", 0, 0);
-				dev_open = true;
-				cout << "SUCCESS." << endl;	
-			}
-			catch (gpibDeviceException f)
-			{
-				cout << "FAILED (more info on ERROR_STREAM)" << endl;
-				if (gpib_device) delete gpib_device;// AJOUT
-				set_state(Tango::FAULT);
-				set_status("Gpib device is not responding.");
-				gpib_device = NULL;
-
-				ERROR_STREAM << "gpibDeviceException from " << f.getDeviceName() << endl;			
-				ERROR_STREAM << f.getMessage() << endl;
-				ERROR_STREAM << f.getiberrMessage() << endl;
-				ERROR_STREAM << f.getibstaMessage() << endl;
-			}
-			catch (...)
-			{
-				cout << "UNEXPECTED EXCEPTION !!!" << endl;
-				exit(-1);
-			}
-		}
-
-
-		// Try to open device, controlled by the board gpibBoardName,
-		// by address if its primary address (= gpibDeviceAddress) exists in DB
-		// --> use the 3rd constructor for gpibDevice class. This is newly
-		//     added constructor to allow gpib device with given primary
-		//     address to be controlled by other than gpib0 board
-		if ((dev_open == false) && (gpibBoardName.length() != 0) && (gpibDeviceAddress != -1))
-		{
-			cout << "Trying to open gpib device " << gpibBoardName <<"::" << gpibDeviceAddress << " : ";
-			try
-			{
-				if (gpib_device != NULL)
-				{
-					delete gpib_device;// AJOUT
-					gpib_device = NULL;
-				}
-
-				gpib_device = new gpibDevice( gpibDeviceAddress, gpibBoardName );
-				// Force exception if device not listening (Off)
-				int sb = gpib_device->isAlive();
-
-				if (sb <=0) 
-					throw gpibDeviceException((string)"init_device()",(string)"Device is not listening",(string)"gpib_device->isAlive() returns value <= 0",(string)"", 0, 0);
-				dev_open = true;
-				cout << "SUCCESS." << endl;
-			}
-			catch (gpibDeviceException f)
-			{
-				cout << "FAILED (more info on ERROR_STREAM)" << endl;
-				if (gpib_device) delete gpib_device;// AJOUT
-				set_state(Tango::FAULT);
-				set_status("Gpib device is not responding.");
-				gpib_device = NULL;
-
-				ERROR_STREAM << "gpibDeviceException from " << f.getDeviceName() << endl;			
-				ERROR_STREAM << f.getMessage() << endl;
-				ERROR_STREAM << f.getiberrMessage() << endl;
-				ERROR_STREAM << f.getibstaMessage() << endl;
-			}
-			catch (...)
-			{
-				cout << "UNEXPECTED EXCEPTION !!!" << endl;
-				exit(-1);
-			}
-		}
-
-
-		// Try to open device by address if its primary address
-		// (= gpibDeviceAddress) exists in DB assuming that the board index
-		// is 0 (board = gpib0) -> use the 4th constructor for the
-		// gpibDevice class.
-
-		if ((dev_open == false) && (gpibDeviceAddress != -1))
-		{
-			cout << "Trying to open gpib device board0::" << gpibDeviceAddress << " : ";
-			try
-			{
-				gpib_device = new gpibDevice((int) gpibDeviceAddress);
-
-				// Force exception if device not listening (Off)
-				int sb = gpib_device->isAlive();
-				
-				if (sb <=0) 
-					throw gpibDeviceException((string)"init_device()",(string)"Device is not listening",(string)"gpib_device->isAlive() returns value <= 0",(string)"", 0, 0);
-				dev_open = true;
-				cout << "SUCCESS." << endl;
-			} 
-			catch (gpibDeviceException f) 
-			{
-				cout << "FAILED (more info on ERROR_STREAM)" << endl;
-				if (gpib_device) delete gpib_device;// AJOUT
-				set_state(Tango::FAULT);
-				set_status("Gpib device is not responding.");
-				gpib_device = NULL;
-
-				ERROR_STREAM << "gpibDeviceException from " << f.getDeviceName() << endl;			
-				ERROR_STREAM << f.getMessage() << endl;
-				ERROR_STREAM << f.getiberrMessage() << endl;
-				ERROR_STREAM << f.getibstaMessage() << endl;
-			}
-			catch (...) 
-			{
-				cout << "UNEXPECTED EXCEPTION !!!" << endl;	
-				exit(-1);
-			}
-		}
-
-		if (gpib_device != NULL)
-		{
-			gpib_device->setTimeOut(gpibDeviceTimeOut);	// Set Time Out.
+			dev_open = true;
 			set_state(Tango::ON);
 			set_status("Gpib device is OK.");
 		}
-	}
-
-
-	//+----------------------------------------------------------------------------
-	//
-	// method : 		GpibDeviceServer::readDeviceProperies()
-	// 
-	// description : 	Read the device properties from database.
-	//
-	//-----------------------------------------------------------------------------
-	void GpibDeviceServer::get_device_property()
-	{
-		//	Initialize your default values here.
-		//------------------------------------------
-		gpibDeviceTimeOut = 13; 		/* 10s predefined value */
-		gpibDeviceAddress = 0xFF;		/* Unused set to zero	*/
-		gpibDeviceName = "";			/* Unused set to zero	*/
-		gpibDeviceSecondaryAddress = 0;		/* Unused set to zero	*/
-
-		//	Read device properties from database.(Automatic code generation)
-		//-------------------------------------------------------------
-		Tango::DbData	dev_prop;
-		dev_prop.push_back(Tango::DbDatum("GpibDeviceName"));
-		dev_prop.push_back(Tango::DbDatum("GpibDeviceAddress"));
-		dev_prop.push_back(Tango::DbDatum("GpibDeviceTimeOut"));
-		dev_prop.push_back(Tango::DbDatum("GpibDeviceSecondaryAddress"));
-		dev_prop.push_back(Tango::DbDatum("GpibBoardName"));
-
-		//	Call database and extract values
-		//--------------------------------------------
-		if (Tango::Util::instance()->_UseDb==true)
-			get_db_device()->get_property(dev_prop);
-		Tango::DbDatum	def_prop, cl_prop;
-		GpibDeviceServerClass	*ds_class =
-			(static_cast<GpibDeviceServerClass *>(get_device_class()));
-		int	i = -1;
-
-		//      Try to initialize GpibDeviceName from class property
-		cl_prop = ds_class->get_class_property(dev_prop[++i].name);
-		if (cl_prop.is_empty()==false)	cl_prop  >>  gpibDeviceName;
-		else {
-			//      Try to initialize GpibDeviceName from default device value
-			def_prop = ds_class->get_default_device_property(dev_prop[i].name);
-			if (def_prop.is_empty()==false)	def_prop  >>  gpibDeviceName;
-		}
-		//	And try to extract GpibDeviceName value from database
-		if (dev_prop[i].is_empty()==false)	dev_prop[i]  >>  gpibDeviceName;
-
-		//	Try to initialize GpibDeviceAddress from class property
-		cl_prop = ds_class->get_class_property(dev_prop[++i].name);
-		if (cl_prop.is_empty()==false)	cl_prop  >>  gpibDeviceAddress;
-		else {
-			//	Try to initialize GpibDeviceAddress from default device value
-			def_prop = ds_class->get_default_device_property(dev_prop[i].name);
-			if (def_prop.is_empty()==false)	def_prop  >>  gpibDeviceAddress;
-		}
-		//	And try to extract GpibDeviceAddress value from database
-		if (dev_prop[i].is_empty()==false)	dev_prop[i]  >>  gpibDeviceAddress;
-
-		//	Try to initialize GpibDeviceTimeOut from class property
-		cl_prop = ds_class->get_class_property(dev_prop[++i].name);
-		if (cl_prop.is_empty()==false)	cl_prop  >>  gpibDeviceTimeOut;
-		else {
-			//	Try to initialize GpibDeviceTimeOut from default device value
-			def_prop = ds_class->get_default_device_property(dev_prop[i].name);
-			if (def_prop.is_empty()==false)	def_prop  >>  gpibDeviceTimeOut;
-		}
-		//	And try to extract GpibDeviceTimeOut value from database
-		if (dev_prop[i].is_empty()==false)	dev_prop[i]  >>  gpibDeviceTimeOut;
-
-		//	Try to initialize GpibDeviceSecondaryAddress from class property
-		cl_prop = ds_class->get_class_property(dev_prop[++i].name);
-		if (cl_prop.is_empty()==false)	cl_prop  >>  gpibDeviceSecondaryAddress;
-		else {
-			//	Try to initialize GpibDeviceSecondaryAddress from default device value
-			def_prop = ds_class->get_default_device_property(dev_prop[i].name);
-			if (def_prop.is_empty()==false)	def_prop  >>  gpibDeviceSecondaryAddress;
-		}
-		//	And try to extract GpibDeviceSecondaryAddress value from database
-		if (dev_prop[i].is_empty()==false)	dev_prop[i]  >>  gpibDeviceSecondaryAddress;
-
-		//	Try to initialize GpibBoardName from class property
-		cl_prop = ds_class->get_class_property(dev_prop[++i].name);
-		if (cl_prop.is_empty()==false)	cl_prop  >>  gpibBoardName;
-		else {
-			//	Try to initialize GpibBoardName from default device value
-			def_prop = ds_class->get_default_device_property(dev_prop[i].name);
-			if (def_prop.is_empty()==false)	def_prop  >>  gpibBoardName;
-		}
-		//	And try to extract GpibBoardName value from database
-		if (dev_prop[i].is_empty()==false)	dev_prop[i]  >>  gpibBoardName;
-
-
-
-		//	End of Automatic code generation
-		//-------------------------------------------------------------
-
-		if ( (dev_prop[0].is_empty() == true) && (dev_prop[1].is_empty() == true) )
+		else
 		{
-			cout << "Mandatory properties 'gpibDeviceName' and 'gpibDeviceAddress' are not defined" << endl;
-			cout << "in the Database. Please define at least one of them. Exiting." << endl;
-			exit(-1);	    
-		}
-	}
-
-
-	//+----------------------------------------------------------------------------
-	//
-	// method : 		GpibDeviceServer::always_executed_hook()
-	// 
-	// description : 	method always executed before any command is executed
-	//
-	//-----------------------------------------------------------------------------
-	void GpibDeviceServer::always_executed_hook()
-	{
-		short sb;
-		if ( (board0 != NULL) && (gpib_device != NULL) && (dev_open == true) ) 
-		{
-			try 
-			{
-				sb = gpib_device->isAlive(); 		// Try to get Status byte 
-				if (sb != 0)
-				{
-					set_state(Tango::ON);
-					set_status("GPIB Device is On.");
-				} 
-				else 
-				{
-					set_state(Tango::FAULT);
-					set_status("GPIB Device is Off.");
-				}
-			} 
-			catch (gpibDeviceException e) 
-			{
-				set_state(Tango::FAULT);
-				set_status("GPIB Device is not responding.");
-			}
-		} 
-		else 
-		{
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on	"+ gpibDeviceName).c_str(),
-				(const char *) "This device is not reachable by server : maybe is the device off ?",
-				(const char *) "An error occurs when looking for device.",
-				Tango::ERR
-				);
-		}
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::write
-	*
-	*	description:	method to execute "Write"
-	*	This command send a string to the device. Throws devFailed on error.
-	*
-	* @param	argin	String to send to the device
-	*
-	*/
-	//+------------------------------------------------------------------
-	void GpibDeviceServer::write(Tango::DevString argin)
-	{
-		DEBUG_STREAM << "GpibDeviceServer::write(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open )	// Trying to write a non-open device. Generate exception.
-		{
-			DEBUG_STREAM << "Write command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to write a not opened device.",
-				(const char *) "Device must be open before write operation.",
-				Tango::ERR
-				);
-		}
-
-		try 
-		{
-			gpib_device->write(argin);
-		} 
-		catch (gpibDeviceException e) 
-		{
-			DEBUG_STREAM << "Write command error on " << e.getDeviceName() << endl;	
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}	
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::read
-	*
-	*	description:	method to execute "Read"
-	*	This command reads a string from a gpib device. 
-	*      Throws an DevFailed exception on error
-	*
-	* @return	Returned string.
-	*
-	*/
-	//+------------------------------------------------------------------
-	Tango::DevString GpibDeviceServer::read()
-	{
-		//	POGO has generated a method core with argout allocation.
-		//	If you would like to use a static reference without copying,
-		//	See "TANGO Device Server Programmer's Manual"
-		//		(chapter : Writing a TANGO DS / Exchanging data)
-		//------------------------------------------------------------
-		Tango::DevString	argout  = new char[RD_BUFFER_SIZE+1]; // AJOUT +1
-		string ret = "";
-		DEBUG_STREAM << "GpibDeviceServer::read(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open )	// Trying to read a non-open device. Generate exception.
-		{
-			DEBUG_STREAM << "Read command error." << endl;	
-			delete[] argout;
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to read a not opened device.",
-				(const char *) "Device must be open before read operation.",
-				Tango::ERR
-				);
-		}
-
-		try 
-		{
-			ret = gpib_device->read();
-			memset(argout,0, (RD_BUFFER_SIZE+1));   // AJOUT +1
-			strcpy(argout, ret.c_str() );
-		} 
-		catch (gpibDeviceException e) 
-		{
-			DEBUG_STREAM << "Read command error on " << e.getDeviceName() << endl;	
-			delete[] argout;
-			//cout << "Read error: err="<< e.getErrorValue()<<" state="<< e.getStateValue() << endl;	    
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}	
-		return argout;
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::close
-	*
-	*	description:	method to execute "Close"
-	*	Close a previously opened gpib device.
-	*	Throws exception on error.
-	*
-	*
-	*/
-	//+------------------------------------------------------------------
-	void GpibDeviceServer::close()
-	{
-		DEBUG_STREAM << "GpibDeviceServer::close(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open )
-		{
-			DEBUG_STREAM << "Close command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to close a not open gpib device.",
-				(const char *) "Open the gpib device first.",
-				Tango::ERR
-				);
-		}
-
-		try 
-		{
-			gpib_device->setOffLine();
-			if(gpib_device)
-			{
-				delete gpib_device;
-				gpib_device = NULL;
-			}
-			dev_open = false;
-			set_state(Tango::OFF);
-
-		} catch (gpibDeviceException e) {
-
-			DEBUG_STREAM << "Close command error on " << e.getDeviceName() << endl;	
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}	
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::read_long_string
-	*
-	*	description:	method to execute "ReadLongString"
-	*	For most gpib device the read command is enough to talk with the device.
-	*      In certain case, the gpibDevice returns a very big string, which is
-	*      larger than the read buffer. For concret example, 
-	*      on :CALC:DATA? command, the hp3588 returns 400 strings representing a
-	*	spectrum, for a total size > 4Kbytes. This method reads these sort of 
-	*      long string.
-	*	For efficiency, its better to use the read command instead of 
-	*      readLongString. This method is provided for exceptionnal case. 
-	*      Throws DevFailed on error.
-	*
-	* @param	argin	Max expected string length.
-	* @return	The readed string.
-	*
-	*/
-	//+------------------------------------------------------------------
-	Tango::DevString GpibDeviceServer::read_long_string(Tango::DevLong argin)
-	{
-		//	POGO has generated a method core with argout allocation.
-		//	If you would like to use a static reference without copying,
-		//	See "TANGO Device Server Programmer's Manual"
-		//		(chapter : Writing a TANGO DS / Exchanging data)
-		//------------------------------------------------------------
-		Tango::DevString	argout  = new char[argin];
-		string ret = "";
-		DEBUG_STREAM << "GpibDeviceServer::read_long_string(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open )	// Trying to read a non-open device. Generate exception.
-		{
-			delete[] argout;
-			DEBUG_STREAM << "ReadLongString command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to read a not opened device.",
-				(const char *) "Device must be open before read operation.",
-				Tango::ERR
-				);
-		}
-
-		try 
-		{	
-			ret = gpib_device->read(argin);
-			strcpy(argout, ret.c_str() );
-
-		} catch (gpibDeviceException e) {
-
-			DEBUG_STREAM << "ReadLongString command error on " << e.getDeviceName() << endl;	
-			delete[] argout;
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}	
-		return argout;
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::get_name
-	*
-	*	description:	method to execute "GetName"
-	*	Return the gpib device name, as defined on the gpib Driver 
-	*      (see them with ibconf tool).
-	*	Throws DevFailed on error
-	*
-	* @return	gpib device name
-	*
-	*/
-	//+------------------------------------------------------------------
-	Tango::DevString GpibDeviceServer::get_name()
-	{
-		//	POGO has generated a method core with argout allocation.
-		//	If you would like to use a static reference without copying,
-		//	See "TANGO Device Server Programmer's Manual"
-		//		(chapter : Writing a TANGO DS / Exchanging data)
-		//------------------------------------------------------------
-		Tango::DevString	argout  = new char[RD_BUFFER_SIZE+1]; // AJOUT +1
-		string ret = "";
-		DEBUG_STREAM << "GpibDeviceServer::get_name(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open )	// Trying to read a non-open device. Generate exception.
-		{
-			delete[] argout;
-			DEBUG_STREAM << "getName command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to getName from a not opened device.",
-				(const char *) "Device must be open before getName operation.",
-				Tango::ERR
-				);
-		}
-
-		try 
-		{
-			ret = gpib_device->getName();
-			memset(argout,0, (RD_BUFFER_SIZE+1));  // AJOUT +1  
-			strcpy(argout, ret.c_str() );
-
-		} catch (gpibDeviceException e) {
-
-			DEBUG_STREAM << "getName command error on " << e.getDeviceName() << endl;	
-			delete[] argout;
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}	
-		return argout;
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::local
-	*
-	*	description:	method to execute "Local"
-	*	Set the gpib device in local mode. Throws DevFailed on error.
-	*
-	*
-	*/
-	//+------------------------------------------------------------------
-	void GpibDeviceServer::local()
-	{
-		DEBUG_STREAM << "GpibDeviceServer::local(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open )	// Trying to read a non-open device. Generate exception.
-		{
-			DEBUG_STREAM << "Local command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to set a not open device in local mode.",
-				(const char *) "Device must be open before using Local command.",
-				Tango::ERR
-				);
-		}
-
-		try 
-		{
-			gpib_device->goToLocalMode();
-
-		} catch (gpibDeviceException e) {
-
-			DEBUG_STREAM << "Local command error on " << e.getDeviceName() << endl;	
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::remote
-	*
-	*	description:	method to execute "Remote"
-	*	Set the gpib device in remote mode. This command is here for 
-	*      compatibility, since network access to a gpib Device will 
-	*      automatically turn it to remote mode.
-	*	Throws DevFailed on error.
-	*
-	*
-	*/
-	//+------------------------------------------------------------------
-	void GpibDeviceServer::remote()
-	{
-		DEBUG_STREAM << "GpibDeviceServer::remote(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open )	// Trying to read a non-open device. Generate exception.
-		{
-			DEBUG_STREAM << "Remote command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to set a not open device in remote mode.",
-				(const char *) "Device must be open before using Remote command.",
-				Tango::ERR
-				);
-		}
-
-		try 
-		{
-			gpib_device->goToRemoteMode();
-
-		} catch (gpibDeviceException e) {
-
-			DEBUG_STREAM << "Remote command error on " << e.getDeviceName() << endl;	
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::getiberr
-	*
-	*	description:	method to execute "Getiberr"
-	*	This command returns last gpib device error code (lib gpib iberr).
-	*	Throws DevFailed on error.
-	*
-	* @return	no argout
-	*
-	*/
-	//+------------------------------------------------------------------
-	Tango::DevLong GpibDeviceServer::getiberr()
-	{
-		Tango::DevLong	argout ;
-		DEBUG_STREAM << "GpibDeviceServer::getiberr(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open )	// Trying to get iberr on a non-open device.Generate exception.
-		{
-			DEBUG_STREAM << "getiberr command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to get iberr on a not open device.",
-				(const char *) "Device must be open before using getiberr command.",
-				Tango::ERR
-				);
-		}
-
-		argout = gpib_device->getiberr(); // This is soft command. No gpibDeviceException here.
-		return argout;
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::getibsta
-	*
-	*	description:	method to execute "Getibsta"
-	*	This command returns last gpib device state code (lib gpib ibsta).
-	*	Throws DevFailed on error.
-	*
-	* @return	no argout
-	*
-	*/
-	//+------------------------------------------------------------------
-	Tango::DevLong GpibDeviceServer::getibsta()
-	{
-		Tango::DevLong	argout ;
-		DEBUG_STREAM << "GpibDeviceServer::getibsta(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open )	// Trying to get iberr on a non-open device.Generate exception.
-		{
-			DEBUG_STREAM << "getibsta command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to get ibsta on a not open device.",
-				(const char *) "Device must be open before using getibsta command.",
-				Tango::ERR
-				);
-		}
-		argout = gpib_device->getibsta(); // This is soft command. No gpibDeviceException here.
-		return argout;
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::getibcnt
-	*
-	*	description:	method to execute "Getibcnt"
-	*	This command returns last gpib device count var (lib gpib ibcnt).
-	*	Throws DevFailed on error.
-	*
-	* @return	no argout
-	*
-	*/
-	//+------------------------------------------------------------------
-	Tango::DevULong GpibDeviceServer::getibcnt()
-	{
-		Tango::DevULong	argout ;
-		DEBUG_STREAM << "GpibDeviceServer::getibcnt(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open )	// Trying to get iberr on a non-open device.Generate exception.
-		{
-			DEBUG_STREAM << "getibcnt command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to get ibcnt on a not open device.",
-				(const char *) "Device must be open before using getibcnt command.",
-				Tango::ERR
-				);
-		}
-		argout = gpib_device->getibcnt(); // This is soft command. No gpibDeviceException here.
-		return argout;
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::clear
-	*
-	*	description:	method to execute "Clear"
-	*	This command clears the gpib device. Throws DevFailed exception on error.
-	*
-	*
-	*/
-	//+------------------------------------------------------------------
-	void GpibDeviceServer::clear()
-	{
-		DEBUG_STREAM << "GpibDeviceServer::clear(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open )	// Trying to read a non-open device. Generate exception.
-		{
-			DEBUG_STREAM << "Clear command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to clear a not open device.",
-				(const char *) "Device must be open before using clear command.",
-				Tango::ERR
-				);
-		}
-
-		try 
-		{
-			gpib_device->clear();
-
-		} catch (gpibDeviceException e) {
-			DEBUG_STREAM << "Clear command error on " << e.getDeviceName() << endl;	
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::set_time_out
-	*
-	*	description:	method to execute "SetTimeOut"
-	*	This command set Time Out value for the gpib device.
-	*	Warning these values are predefined, cf gpibDevice.h
-	*	accepted value are [0-15]. Throws DevFailed exception on error.
-	*
-	* @param	argin	accepted value are [0-15]
-	*
-	*/
-	//+------------------------------------------------------------------
-	void GpibDeviceServer::set_time_out(Tango::DevShort argin)
-	{
-		DEBUG_STREAM << "GpibDeviceServer::set_time_out(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open )	// Trying to read a non-open device. Generate exception.
-		{
-			DEBUG_STREAM << "SetTimeOut command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to use SetTimeOut on a not open device.",
-				(const char *) "Device must be open before using SetTimeOut command.",
-				Tango::ERR
-				);
-		}
-
-		try 
-		{
-			gpib_device->setTimeOut(argin);
-
-		} catch (gpibDeviceException e) {
-			DEBUG_STREAM << "SetTimeOut command error on " << e.getDeviceName() << endl;	
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::bcsend_ifc
-	*
-	*	description:	method to execute "BCsendIFC"
-	*	This commands send IFC to the gpib Board0.
-	*	So the board becomes Controller In Charge and devices are cleared.
-	*	All commands beginning with'BC' are Board Commands.
-	*	Throws DevFailed exception on error.
-	*
-	*
-	*/
-	//+------------------------------------------------------------------
-	void GpibDeviceServer::bcsend_ifc()
-	{
-		DEBUG_STREAM << "GpibDeviceServer::bcsend_ifc(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		// We don't check that board0 is open since this is done in the init_device method.
-		try 
-		{
-			board0->sendIFC();
-
-		} catch (gpibDeviceException e) {
-			DEBUG_STREAM << "BCsendIFC command error on " << e.getDeviceName() << endl;	
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}        
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::bcclr
-	*
-	*	description:	method to execute "BCclr"
-	*	This command clears a specified device.
-	*	Throws DevFailed exception on error.
-	*
-	* @param	argin	handler of the device to clear.
-	*
-	*/
-	//+------------------------------------------------------------------
-	void GpibDeviceServer::bcclr(Tango::DevLong argin)
-	{
-		DEBUG_STREAM << "GpibDeviceServer::bcclr(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		// We don't check that board0 is open since this is done in the init_device method.
-		try 
-		{
-			board0->clr(argin);
-
-		} catch (gpibDeviceException e) {
-			DEBUG_STREAM << "BCclr command error on " << e.getDeviceName() << endl;	
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}        
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::get_device_id
-	*
-	*	description:	method to execute "GetDeviceID"
-	*	This command return internal gpib device ID.
-	*	This is usefull for board command using this ID to acces devices, as BCclr cmd.
-	*	Throws DevFailed exception on error.
-	*
-	* @return	no argout
-	*
-	*/
-	//+------------------------------------------------------------------
-	Tango::DevLong GpibDeviceServer::get_device_id()
-	{
-		Tango::DevLong	argout ;
-		DEBUG_STREAM << "GpibDeviceServer::get_device_id(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open )	// Trying to get ID from  a non-open device. Generate exception.
-		{
-			DEBUG_STREAM << "getDeviceID command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to get ID from a device not open.",
-				(const char *) "Device must be open before getting ID.",
-				Tango::ERR
-				);
-		}
-
-		argout = gpib_device->getDeviceID(); // This is soft command. No gpibDeviceException here.
-		return argout;
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::bcllo
-	*
-	*	description:	method to execute "BCllo"
-	*	This command send a local lockout to the specified device.
-	*	Throws DevFailed exception on error.
-	*
-	* @param	argin	Device ID
-	*
-	*/
-	//+------------------------------------------------------------------
-	void GpibDeviceServer::bcllo(Tango::DevLong argin)
-	{
-		DEBUG_STREAM << "GpibDeviceServer::bcllo(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		try 
-		{
-			board0->llo(argin);
-
-		} catch (gpibDeviceException e) {
-			DEBUG_STREAM << "BCllo command error on " << e.getDeviceName() << endl;	
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}        
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::bccmd
-	*
-	*	description:	method to execute "BCcmd"
-	*	Send a GPIB command message.
-	*	This method is not used to transmit programming instruction to devices
-	*	this kind of instructions are transmitted with the read / write methods.
-	*	As done in write method, cmd automatically append EOS, as defined with
-	*	setEOS method.
-	*
-	* @param	argin	Command string.
-	*
-	*/
-	//+------------------------------------------------------------------
-	void GpibDeviceServer::bccmd(Tango::DevString argin)
-	{
-		DEBUG_STREAM << "GpibDeviceServer::bccmd(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		try 
-		{
-			board0->cmd(argin);
-
-		} catch (gpibDeviceException e) {
-			DEBUG_STREAM << "BCcmd command error on " << e.getDeviceName() << endl;	
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}        
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::open
-	*
-	*	description:	method to execute "Open"
-	*	This command opens a gpib device using the gpibDeviceAddress property,
-	*      assuming that the device is controlled by the board gpib0.
-	*      Therefore it uses the 4th gpibDevice constructor.
-	*	This command should not be used since gpib device is open on device 
-	*      server initialisation.
-	*	Its provided in case of problem to do it manually. 
-	*      Throws DevFailed exception on error.
-	*	This command is allowed on fault to accept reconnection.
-	*
-	*
-	*/
-	//+------------------------------------------------------------------
-	void GpibDeviceServer::open()
-	{
-		DEBUG_STREAM << "GpibDeviceServer::open(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( dev_open )	// Trying to open an already opened device. Generate exception.
-		{
-			DEBUG_STREAM << "Open command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to open an already open device.",
-				(const char *) "Device must be closed before open operation.",
-				Tango::ERR
-				);
-		}
-
-		try 
-		{
-			gpib_device = new gpibDevice( gpibDeviceAddress );
-			//	    gpib_device->write("AYT"); 	// Are You There ?
-			if (gpib_device->isAlive() )
-			{
-				dev_open = true;
-				set_state(Tango::ON);
-				set_status("Gpib device is OK.");
-			}
-			else
-			{
-				set_state(Tango::FAULT);
-				set_status("Gpib device is not responding.");
-				DEBUG_STREAM << "Open command error on " << gpib_device->getName() << endl;	
-				Tango::Except::throw_exception(
-					(const char *) ("gpibDeviceException on " + gpib_device->getName() ).c_str(),
-					(const char *) "Open command error.",
-					(const char *) "gpib device is not responding.",
-					Tango::ERR
-					);	    
-			}
-		} catch (gpibDeviceException e) {
 			set_state(Tango::FAULT);
 			set_status("Gpib device is not responding.");
-			if (gpib_device)	
-			{
-				delete gpib_device; // AJOUT
-				gpib_device = NULL;
-			}
-			DEBUG_STREAM << "Open command error on " << e.getDeviceName() << endl;	
+			DEBUG_STREAM << "Open command error on " << gpib_device->getName() << endl;
 			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
+			    (const char *) ("gpibDeviceException on " + gpib_device->getName() ).c_str(),
+			    (const char *) "Open command error.",
+			    (const char *) "gpib device is not responding.",
+			    Tango::ERR
+			);
 		}
+	} catch (gpibDeviceException e) {
+		set_state(Tango::FAULT);
+		set_status("Gpib device is not responding.");
+		if (gpib_device)
+		{
+			delete gpib_device; // AJOUT
+			gpib_device = NULL;
+		}
+		DEBUG_STREAM << "Open command error on " << e.getDeviceName() << endl;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
 	}
+}
 
 
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::open_by_name
-	*
-	*	description:	method to execute "OpenByName"
-	*	This command opens a gpib device using the gpibDeviceName property,
-	*      assuming that the device is controlled by the board gpib0.
-	*      Therefore it uses the 2nd gpibDevice constructor.
-	*	This command should not be used since gpib device is opened on 
-	*      device server initialisation.
-	*	It is provided in case of problem to do it manually. 
-	*      Throws DevFailed exception on error.
-	*	This command is allowed on fault to accept reconnection.
-	*
-	*
-	*/
-	//+------------------------------------------------------------------
-	void GpibDeviceServer::open_by_name()
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::open_by_name
+*
+*	description:	method to execute "OpenByName"
+*	This command opens a gpib device using the gpibDeviceName property,
+*      assuming that the device is controlled by the board gpib0.
+*      Therefore it uses the 2nd gpibDevice constructor.
+*	This command should not be used since gpib device is opened on 
+*      device server initialisation.
+*	It is provided in case of problem to do it manually. 
+*      Throws DevFailed exception on error.
+*	This command is allowed on fault to accept reconnection.
+*
+*
+*/
+//+------------------------------------------------------------------
+void GpibDeviceServer::open_by_name()
+{
+	DEBUG_STREAM << "GpibDeviceServer::open_by_name(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	if ( dev_open )	// Trying to open an already opened device. Generate exception.
 	{
-		DEBUG_STREAM << "GpibDeviceServer::open_by_name(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( dev_open )	// Trying to open an already opened device. Generate exception.
+		DEBUG_STREAM << "OpenByName command error." << endl;
+		Tango::Except::throw_exception(
+		    (const char *) "gpibDeviceException.",
+		    (const char *) "Attempt to OpenByName an already open device.",
+		    (const char *) "Device must be closed before OpenByName operation.",
+		    Tango::ERR
+		);
+	}
+	
+	try
+	{
+		gpib_device = new gpibDevice( gpibDeviceName );
+		//	    gpib_device->write("AYT"); 	// Are You There ?
+		
+		if (gpib_device->isAlive() )
 		{
-			DEBUG_STREAM << "OpenByName command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to OpenByName an already open device.",
-				(const char *) "Device must be closed before OpenByName operation.",
-				Tango::ERR
-				);
+			dev_open = true;
+			set_state(Tango::ON);
+			set_status("Gpib device is OK.");
 		}
-
-		try 
+		else
 		{
-			gpib_device = new gpibDevice( gpibDeviceName );
-			//	    gpib_device->write("AYT"); 	// Are You There ?
-
-			if (gpib_device->isAlive() )
-			{
-				dev_open = true;
-				set_state(Tango::ON);
-				set_status("Gpib device is OK.");
-			}
-			else
-			{
-				set_state(Tango::FAULT);
-				set_status("Gpib device is not responding.");
-				DEBUG_STREAM << "OpenByName command error on " << gpib_device->getName() << endl;	
-				Tango::Except::throw_exception(
-					(const char *) ("gpibDeviceException on " + gpib_device->getName() ).c_str(),
-					(const char *) "OpenByName command error.",
-					(const char *) "gpib device is not responding.",
-					Tango::ERR
-					);	    
-			}
-		} catch (gpibDeviceException e) {
 			set_state(Tango::FAULT);
 			set_status("Gpib device is not responding.");
-			if (gpib_device)	
-			{
-				delete gpib_device; // AJOUT
-				gpib_device = NULL;
-			}
-			DEBUG_STREAM << "OpenByName command error on " << e.getDeviceName() << endl;	
+			DEBUG_STREAM << "OpenByName command error on " << gpib_device->getName() << endl;
 			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
+			    (const char *) ("gpibDeviceException on " + gpib_device->getName() ).c_str(),
+			    (const char *) "OpenByName command error.",
+			    (const char *) "gpib device is not responding.",
+			    Tango::ERR
+			);
 		}
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::bcget_connected_device_list
-	*
-	*	description:	method to execute "BCGetConnectedDeviceList"
-	*	This command returns the string array :
-	*	
-	*	+ primary address + secondary address for 1st device found
-	*	
-	*	+ primary address + secondary address for 2d device found
-	*	ect ....
-	*	ex:
-	*	HEWLETT-PACKARD,3589A,3343A00642,A.00.03 PAD=6 SAD=0
-	*
-	* @return	list of connected device on the GPIB bus
-	*
-	*/
-	//+------------------------------------------------------------------
-	Tango::DevVarStringArray *GpibDeviceServer::bcget_connected_device_list()
+	} 
+	catch (gpibDeviceException e) 
 	{
-		//	Add your own code to control device here
-
-		Tango::DevVarStringArray	*argout  = new Tango::DevVarStringArray();
-		vector<gpibDeviceInfo> devInfo;
-
-		DEBUG_STREAM << "GpibDeviceServer::get_connected_device_list(): entering... !" << endl;	
-
-		try 
+		set_state(Tango::FAULT);
+		set_status("Gpib device is not responding.");
+		if (gpib_device)
 		{
-			set_state(Tango::MOVING);
-			devInfo = board0->getConnectedDeviceList();
-			set_state(Tango::ON);	
-
-		} catch (gpibDeviceException e) {
-			DEBUG_STREAM << "getConnectedDeviceList command error on " << e.getDeviceName() << endl;	
-			delete argout;
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
+			delete gpib_device; // AJOUT
+			gpib_device = NULL;
 		}
-
-		argout->length(devInfo.size() );
-		for (long i = 0; i < devInfo.size(); i++)
-		{
-			ostringstream os1;
-			ostringstream os2;
-
-			os1 << devInfo[i].dev_pad;
-			string pad = " PAD=" + os1.str();
-
-			os2 << devInfo[i].dev_sad;
-			string sad = " SAD=" + os2.str();
-			(*argout)[i] = CORBA::string_dup( (devInfo[i].dev_idn + pad + sad  ).c_str() );
-		}
-		return argout;
+		DEBUG_STREAM << "OpenByName command error on " << e.getDeviceName() << endl;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
 	}
+}
 
 
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::trigger
-	*
-	*	description:	method to execute "Trigger"
-	*	This command sends a trigger signal to the GPIB device.
-	*	If the device was previously set up, it can make its measurment, 
-	*      and send it on the bus.
-	*	Measure is now get with a read command.
-	*
-	*
-	*/
-	//+------------------------------------------------------------------
-	void GpibDeviceServer::trigger()
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::bcget_connected_device_list
+*
+*	description:	method to execute "BCGetConnectedDeviceList"
+*	This command returns the string array :
+*	
+*	+ primary address + secondary address for 1st device found
+*	
+*	+ primary address + secondary address for 2d device found
+*	ect ....
+*	ex:
+*	HEWLETT-PACKARD,3589A,3343A00642,A.00.03 PAD=6 SAD=0
+*
+* @return	list of connected device on the GPIB bus
+*
+*/
+//+------------------------------------------------------------------
+Tango::DevVarStringArray *GpibDeviceServer::bcget_connected_device_list()
+{
+	//	Add your own code to control device here
+	
+	Tango::DevVarStringArray	*argout  = new Tango::DevVarStringArray();
+	vector<gpibDeviceInfo> devInfo;
+	
+	DEBUG_STREAM << "GpibDeviceServer::get_connected_device_list(): entering... !" << endl;
+	
+	try
 	{
-		DEBUG_STREAM << "GpibDeviceServer::trigger(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open )	// Trying to read a non-open device. Generate exception.
-		{
-			DEBUG_STREAM << "Trigger command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to Trigger a not open device.",
-				(const char *) "Device must be open before using Trigger command.",
-				Tango::ERR
-				);
-		}
-
-		try 
-		{
-			gpib_device->trigger();
-
-		} catch (gpibDeviceException e) {
-			DEBUG_STREAM << "Trigger command error on " << e.getDeviceName() << endl;	
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}
-	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::write_read
-	*
-	*	description:	method to execute "WriteRead"
-	*	This command perform a write on the GPIB device, and then perform 
-	*      a read to get the answer, before returning it.
-	*
-	* @param	argin	String to send to the gpib device.
-	* @return	String returned by the gpib Device.
-	*
-	*/
-	//+------------------------------------------------------------------
-	Tango::DevString GpibDeviceServer::write_read(Tango::DevString argin)
+		set_state(Tango::MOVING);
+		devInfo = board0->getConnectedDeviceList();
+		set_state(Tango::ON);
+		
+	} 
+	catch (gpibDeviceException e) 
 	{
-		//	POGO has generated a method core with argout allocation.
-		//	If you would like to use a static reference without copying,
-		//	See "TANGO Device Server Programmer's Manual"
-		//		(chapter : Writing a TANGO DS / Exchanging data)
-		//------------------------------------------------------------
-		Tango::DevString	argout  = new char[RD_BUFFER_SIZE+1]; // AJOUT +1
-		string ret = "";
-
-		DEBUG_STREAM << "GpibDeviceServer::write_read(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open )	// Trying to write/read a non-open device. Generate exception.
-		{
-			DEBUG_STREAM << "WriteRead command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to write+read a not opened device.",
-				(const char *) "Device must be open before write+read operation.",
-				Tango::ERR
-				);
-		}
-
-		try 
-		{
-			ret = gpib_device->writeRead(argin);
-			memset(argout,0, (RD_BUFFER_SIZE+1));  // AJOUT +1 
-			strcpy(argout, ret.c_str() );
-
-		} catch (gpibDeviceException e) {
-			DEBUG_STREAM << "WriteRead command error on " << e.getDeviceName() << endl;	
-			delete[] argout;
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}	
-		return argout;
+		DEBUG_STREAM << "getConnectedDeviceList command error on " << e.getDeviceName() << endl;
+		delete argout;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
 	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::config
-	*
-	*	description:	method to execute "Config"
-	*	index 0 of input array is the GPIB option to modify.
-	*	index 1 is the new value to associate to this option.
-	*
-	* @param	argin	Array of 2 long.
-	*
-	*/
-	//+------------------------------------------------------------------
-	void GpibDeviceServer::config(const Tango::DevVarLongArray *argin)
+	
+	argout->length(devInfo.size() );
+	for (long i = 0; i < devInfo.size(); i++)
 	{
-		DEBUG_STREAM << "GpibDeviceServer::config(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open )	// Trying to configure a non-open device. Generate exception.
-		{
-			DEBUG_STREAM << "Config command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to configure a not opened device.",
-				(const char *) "Device must be open before configure operation.",
-				Tango::ERR
-				);
-		}
-
-		// Check parameter number.
-		if (argin->length() != 2) {
-			DEBUG_STREAM << "GpibDeviceServer::config(): Wrong input parameter number." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + gpib_device->getName() ).c_str(),
-				(const char *) "GpibDeviceServer::config(): Wrong input parameter number.",
-				(const char *) "Two parameters are needed.",
-				Tango::ERR
-				);
-		} 
-
-		try 
-		{
-			gpib_device->config( (*argin)[0], (*argin)[1] );
-
-		} catch (gpibDeviceException e) {
-			DEBUG_STREAM << "Config command error on " << e.getDeviceName() << endl;	
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		} 
+		ostringstream os1;
+		ostringstream os2;
+		
+		os1 << devInfo[i].dev_pad;
+		string pad = " PAD=" + os1.str();
+		
+		os2 << devInfo[i].dev_sad;
+		string sad = " SAD=" + os2.str();
+		(*argout)[i] = CORBA::string_dup( (devInfo[i].dev_idn + pad + sad  ).c_str() );
 	}
+	return argout;
+}
 
 
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::bcconfig
-	*
-	*	description:	method to execute "BCConfig"
-	*	Same method than Config, but sent on gpib Board instead of GPIB device.
-	*
-	* @param	argin	Array of 2 long.
-	*
-	*/
-	//+------------------------------------------------------------------
-	void GpibDeviceServer::bcconfig(const Tango::DevVarLongArray *argin)
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::trigger
+*
+*	description:	method to execute "Trigger"
+*	This command sends a trigger signal to the GPIB device.
+*	If the device was previously set up, it can make its measurment, 
+*      and send it on the bus.
+*	Measure is now get with a read command.
+*
+*
+*/
+//+------------------------------------------------------------------
+void GpibDeviceServer::trigger()
+{
+	DEBUG_STREAM << "GpibDeviceServer::trigger(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	throwExceptionIfDeviceIsClosed();
+	
+	try
 	{
-		DEBUG_STREAM << "GpibDeviceServer::bcconfig(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if (argin->length() != 2) {
-			DEBUG_STREAM << "GpibDeviceServer::bcconfig(): Wrong input parameter number." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + gpib_device->getName() ).c_str(),
-				(const char *) "GpibDeviceServer::bcconfig(): Wrong input parameter number.",
-				(const char *) "Two parameters are needed.",
-				Tango::ERR
-				);
-		} 
-
-		try 
-		{
-			board0->config( (*argin)[0], (*argin)[1]);
-
-		} catch (gpibDeviceException e) {
-			DEBUG_STREAM << "BCConfig command error on " << e.getDeviceName() << endl;	
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}        
+		gpib_device->trigger();
+		
+	} catch (gpibDeviceException e) {
+		DEBUG_STREAM << "Trigger command error on " << e.getDeviceName() << endl;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
 	}
+}
 
 
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::send_bin_data
-	*
-	*	description:	method to execute "SendBinData"
-	*	This command send an array of binary data to the device 
-	*      through the GPIB bus.
-	*	Throws devFailed on error.
-	*
-	* @param	argin	Array of binary data to send to the device
-	*
-	*/
-	//+------------------------------------------------------------------
-	void GpibDeviceServer::send_bin_data(const Tango::DevVarCharArray *argin)
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::write_read
+*
+*	description:	method to execute "WriteRead"
+*	This command perform a write on the GPIB device, and then perform 
+*      a read to get the answer, before returning it.
+*
+* @param	argin	String to send to the gpib device.
+* @return	String returned by the gpib Device.
+*
+*/
+//+------------------------------------------------------------------
+Tango::DevString GpibDeviceServer::write_read(Tango::DevString argin)
+{
+	//	POGO has generated a method core with argout allocation.
+	//	If you would like to use a static reference without copying,
+	//	See "TANGO Device Server Programmer's Manual"
+	//		(chapter : Writing a TANGO DS / Exchanging data)
+	//------------------------------------------------------------
+	Tango::DevString	argout  = new char[RD_BUFFER_SIZE+1]; // AJOUT +1
+	string ret = "";
+	
+	DEBUG_STREAM << "GpibDeviceServer::write_read(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	throwExceptionIfDeviceIsClosed();
+	
+	try
 	{
-		DEBUG_STREAM << "GpibDeviceServer::send_bin_data(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open )	// Trying to write a non-open device. Generate exception.
-		{
-			DEBUG_STREAM << "send_bin_data command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to send data on a not opened device.",
-				(const char *) "Device must be open before write operation.",
-				Tango::ERR
-				);
-		}
-
-		char *data =  new char[argin->length()];
-		// check if memory is allocated
-		if (data == NULL)
-		{
-			DEBUG_STREAM << "send_bin_data can not allocate memory." <<endl;
-			Tango::Except::throw_exception(
-				(const char*) "gpibDeviceException.",
-				(const char*) "memory not allocated.",
-				(const char*) "malloc() in send_bin_data().",
-				Tango::ERR
-				);
-		}
-
-		// sendData expected a char* and not a Tango::DevVarCharArray *
-		for(int i = 0; i < argin->length(); i++)
-			data[i] = (*argin)[i];
-
-		try 
-		{
-			gpib_device->sendData(data, argin->length());
-			delete[] data;
-		} 
-		catch (gpibDeviceException e) {
-			if(data) delete[] data;
-			DEBUG_STREAM << "send_bin_data command error on " << e.getDeviceName() << endl;	
-			Tango::Except::throw_exception(
-				(const char*) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char*) e.getiberrMessage().c_str(),
-				(const char*) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}	
-		catch(...)
-		{
-			if(data) delete[] data;
-			FATAL_STREAM << "send_bin_data catch(...) case " << endl;	
-		}
+		ret = gpib_device->writeRead(argin);
+		memset(argout,0, (RD_BUFFER_SIZE+1));  // AJOUT +1
+		strcpy(argout, ret.c_str() );
+		
+	} catch (gpibDeviceException e) {
+		DEBUG_STREAM << "WriteRead command error on " << e.getDeviceName() << endl;
+		delete[] argout;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
 	}
+	return argout;
+}
 
 
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::receive_bin_data
-	*
-	*	description:	method to execute "ReceiveBinData"
-	*	This command reads an array of binary data from a gpib device.
-	*	Up to 65536 bytes. In generaly, a Gpib device can send or receive 64Ko.
-	*	Throws an DevFailed exception on error
-	*
-	* @param	argin	length of the data to receive from the Gpib device
-	* @return	Array of binary data
-	*
-	*/
-	//+------------------------------------------------------------------
-	Tango::DevVarCharArray *GpibDeviceServer::receive_bin_data(Tango::DevLong argin)
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::config
+*
+*	description:	method to execute "Config"
+*	index 0 of input array is the GPIB option to modify.
+*	index 1 is the new value to associate to this option.
+*
+* @param	argin	Array of 2 long.
+*
+*/
+//+------------------------------------------------------------------
+void GpibDeviceServer::config(const Tango::DevVarLongArray *argin)
+{
+	DEBUG_STREAM << "GpibDeviceServer::config(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	throwExceptionIfDeviceIsClosed();
+	
+	// Check parameter number.
+	if (argin->length() != 2) {
+		DEBUG_STREAM << "GpibDeviceServer::config(): Wrong input parameter number." << endl;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + gpib_device->getName() ).c_str(),
+		    (const char *) "GpibDeviceServer::config(): Wrong input parameter number.",
+		    (const char *) "Two parameters are needed.",
+		    Tango::ERR
+		);
+	}
+	
+	try
 	{
-		//	POGO has generated a method core with argout allocation.
-		//	If you would like to use a static reference without copying,
-		//	See "TANGO Device Server Programmer's Manual"
-		//		(chapter : Writing a TANGO DS / Exchanging data)
-		//------------------------------------------------------------
-		DEBUG_STREAM << "GpibDeviceServer::receive_bin_data(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open )	// Trying to read a non-open device. Generate exception.
-		{
-			DEBUG_STREAM << "receive_bin_data command error." << endl;	
-			Tango::Except::throw_exception(
-				(const char*) "gpibDeviceException.",
-				(const char*) "Attempt to read data from a not opened device.",
-				(const char*) "Device must be open before read operation.",
-				Tango::ERR
-				);
-		}
-
-		long nb_data = argin;
-		char	*response;
-
-		try 
-		{
-			response = gpib_device->receiveData(nb_data);
-
-		} 
-		catch (gpibDeviceException e) {
-			DEBUG_STREAM << "receive_bin_data command error on " << e.getDeviceName() << endl;	
-			//if (argout) delete argout;
-			Tango::Except::throw_exception(
-				(const char*)(("gpibDeviceException on " + e.getDeviceName() ).c_str()),
-				(const char*)e.getiberrMessage().c_str(),
-				(const char*)e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}
-
-		Tango::DevVarCharArray *argout = new Tango::DevVarCharArray();
-		argout->length(nb_data);
-
-		// check if memory is allocated
-		if (argout == NULL)
-		{
-			DEBUG_STREAM << "receive_bin_data can not allocate memory." << endl;	
-			Tango::Except::throw_exception(
-				(const char*) "gpibDeviceException.",
-				(const char*) "memory not allocated.",
-				(const char*) "new Tango::DevVarCharArray() failed in receive_bin_data().",
-				Tango::ERR
-				);
-		}
-
-		for (long i = 0; i < nb_data; i++)
-			(*argout)[i] = response[i];
-
-		delete [] response;
-
-		return argout;
+		gpib_device->config( (*argin)[0], (*argin)[1] );
+		
+	} catch (gpibDeviceException e) {
+		DEBUG_STREAM << "Config command error on " << e.getDeviceName() << endl;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
 	}
+}
 
 
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::bcget_config
-	*
-	*	description:	method to execute "BCGetConfig"
-	*	Returns a value for one configuration option for a GPIB Board.
-	*	Throws Tango::DevFailed exception on error.
-	*
-	* @param	argin	Configuration option index (see ibask table)
-	* @return	Value for wanted configuration option
-	*
-	*/
-	//+------------------------------------------------------------------
-	Tango::DevShort GpibDeviceServer::bcget_config(Tango::DevShort argin)
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::bcconfig
+*
+*	description:	method to execute "BCConfig"
+*	Same method than Config, but sent on gpib Board instead of GPIB device.
+*
+* @param	argin	Array of 2 long.
+*
+*/
+//+------------------------------------------------------------------
+void GpibDeviceServer::bcconfig(const Tango::DevVarLongArray *argin)
+{
+	DEBUG_STREAM << "GpibDeviceServer::bcconfig(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	if (argin->length() != 2) {
+		DEBUG_STREAM << "GpibDeviceServer::bcconfig(): Wrong input parameter number." << endl;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + gpib_device->getName() ).c_str(),
+		    (const char *) "GpibDeviceServer::bcconfig(): Wrong input parameter number.",
+		    (const char *) "Two parameters are needed.",
+		    Tango::ERR
+		);
+	}
+	
+	try
 	{
-		Tango::DevShort	argout ;
-		DEBUG_STREAM << "GpibDeviceServer::bcget_config(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		// We don't check that board0 is open since this is done in 
-		// the init_device method.
-
-		// TODO: should test the value od argin = config. option index
-		//       since this is not done in getconfig() function inside
-		//       gpibDevice class.
-
-		try
-		{
-			argout = (Tango::DevShort)board0->getconfig(argin);
-		}
-		catch (gpibDeviceException e)
-		{
-			DEBUG_STREAM << "BCGetConfig command error on " << e.getDeviceName() << endl;
-			argout = 0;
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}
-		return argout;
-
-		// if would work without exceptions, then instead of the last
-		// try/catch block above would have just the following 2 lines:
-		//argout = (Tango::DevShort)board0->getconfig(argin);
-		//return argout;
+		board0->config( (*argin)[0], (*argin)[1]);
+		
+	} catch (gpibDeviceException e) {
+		DEBUG_STREAM << "BCConfig command error on " << e.getDeviceName() << endl;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
 	}
+}
 
 
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::get_config
-	*
-	*	description:	method to execute "GetConfig"
-	*	Get a value for one configuration option for a GPIB device.
-	*	Throws Tango::DevFailed exception on error.
-	*
-	* @param	argin	Configuration option index (see ibask table)
-	* @return	Value for wanted configuration option
-	*
-	*/
-	//+------------------------------------------------------------------
-	Tango::DevShort GpibDeviceServer::get_config(Tango::DevShort argin)
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::send_bin_data
+*
+*	description:	method to execute "SendBinData"
+*	This command send an array of binary data to the device 
+*      through the GPIB bus.
+*	Throws devFailed on error.
+*
+* @param	argin	Array of binary data to send to the device
+*
+*/
+//+------------------------------------------------------------------
+void GpibDeviceServer::send_bin_data(const Tango::DevVarCharArray *argin)
+{
+	DEBUG_STREAM << "GpibDeviceServer::send_bin_data(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	throwExceptionIfDeviceIsClosed();
+	
+	char *data =  new char[argin->length()];
+	// check if memory is allocated
+	if (data == NULL)
 	{
-		Tango::DevShort	argout ;
-		DEBUG_STREAM << "GpibDeviceServer::get_config(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open ) // Trying to get value for one configure option on a non-open device.Generate exception.
-		{
-			DEBUG_STREAM << "getconfig command error." << endl;
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to get value for one configure option on a not open device.",
-				(const char *) "Device must be open before using get_config command.",
-				Tango::ERR
-				);
-		}
-
-		// TODO: should test the value od argin = config. option index
-		//       since this is not done in getconfig() function inside
-		//       gpibDevice class.
-
-		try
-		{
-			argout = (Tango::DevShort)gpib_device->getconfig(argin);
-		}
-		catch (gpibDeviceException e)
-		{
-			DEBUG_STREAM << "GetConfig command error on " << e.getDeviceName() << endl;
-			argout = 0;
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}
-		return argout;
-
-		// if would work without exceptions, then instead of the last
-		// try/catch block above would have just the following 2 lines:
-		//argout = (Tango::DevShort)gpib_device->getconfig(argin);
-		//return argout;
+		DEBUG_STREAM << "send_bin_data can not allocate memory." <<endl;
+		Tango::Except::throw_exception(
+		    (const char*) "gpibDeviceException.",
+		    (const char*) "memory not allocated.",
+		    (const char*) "malloc() in send_bin_data().",
+		    Tango::ERR
+		);
 	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::listener_check
-	*
-	*	description:	method to execute "ListenerCheck"
-	*	This command returns the status of listener check on device and returns
-	*	1, when device responds (= is alive) and 0, when not.
-	*	Throws Tango::DevFailed exception on error.
-	*
-	* @return	Flag telling if selected GPIB device is alive
-	*
-	*/
-	//+------------------------------------------------------------------
-	Tango::DevShort GpibDeviceServer::listener_check()
+	
+	// sendData expected a char* and not a Tango::DevVarCharArray *
+	for(int i = 0; i < argin->length(); i++)
+		data[i] = (*argin)[i];
+		
+	try
 	{
-		Tango::DevShort	argout ;
-		DEBUG_STREAM << "GpibDeviceServer::listener_check(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open ) // Trying to get listener check status on a non-open device.Generate exception.
-		{
-			DEBUG_STREAM << "listenercheck command error." << endl;
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to get listener check status on a not open device.",
-				(const char *) "Device must be open before using listener_check command.",
-				Tango::ERR
-				);
-		}
-
-		try
-		{
-			argout = (Tango::DevShort)gpib_device->isAlive();
-		}
-		catch (gpibDeviceException e)
-		{
-			DEBUG_STREAM << "ListenerCheck command error on " << e.getDeviceName() << endl;
-			argout = 0;
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}
-		return argout;
-
-		// if would work without exceptions, then instead of the last
-		// try/catch block above would have just the following 2 lines:
-		//argout = (Tango::DevShort)gpib_device->isAlive();
-		//return argout;
+		gpib_device->sendData(data, argin->length());
+		delete[] data;
 	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::get_serial_poll
-	*
-	*	description:	method to execute "GetSerialPoll"
-	*	This command returns the serial poll byte of device.
-	*	Throws Tango::DevFailed exception on error.
-	*
-	* @return	Serial poll status byte
-	*
-	*/
-	//+------------------------------------------------------------------
-	Tango::DevShort GpibDeviceServer::get_serial_poll()
+	catch (gpibDeviceException e) {
+		if(data) delete[] data;
+		DEBUG_STREAM << "send_bin_data command error on " << e.getDeviceName() << endl;
+		Tango::Except::throw_exception(
+		    (const char*) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char*) e.getiberrMessage().c_str(),
+		    (const char*) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+	catch(...)
 	{
-		Tango::DevShort	argout ;
-		DEBUG_STREAM << "GpibDeviceServer::get_serial_poll(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open ) // Trying to get serial-poll status on a non-open device.Generate exception.
-		{
-			DEBUG_STREAM << "getserialpoll command error." << endl;
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to get serial-polls status on a not open device.",
-				(const char *) "Device must be open before using get_serial_poll command.",
-				Tango::ERR
-				);
-		}
-
-		try
-		{
-			argout = (Tango::DevShort)gpib_device->getSerialPoll();
-		}
-		catch (gpibDeviceException e)
-		{
-			DEBUG_STREAM << "GetSerialPoll command error on " << e.getDeviceName() << endl;
-			argout = 0;
-			Tango::Except::throw_exception(
-				(const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
-				(const char *) e.getiberrMessage().c_str(),
-				(const char *) e.getibstaMessage().c_str(),
-				Tango::ERR
-				);
-		}
-		return argout;
-
-		// if would work without exceptions, then instead of the last
-		// try/catch block above would have just the following 2 lines:
-		//argout = (Tango::DevShort)gpib_device->getSerialPoll();
-		//return argout;
+		if(data) delete[] data;
+		FATAL_STREAM << "send_bin_data catch(...) case " << endl;
 	}
+}
 
 
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::get_device_pad
-	*
-	*	description:	method to execute "GetDevicePad"
-	*	This command returns the primary address of device,
-	*	which has possible values 0->30.
-	*	Throws Tango::DevFailed exception on error.
-	*
-	* @return	Device primary address
-	*
-	*/
-	//+------------------------------------------------------------------
-	Tango::DevShort GpibDeviceServer::get_device_pad()
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::receive_bin_data
+*
+*	description:	method to execute "ReceiveBinData"
+*	This command reads an array of binary data from a gpib device.
+*	Up to 65536 bytes. In generaly, a Gpib device can send or receive 64Ko.
+*	Throws an DevFailed exception on error
+*
+* @param	argin	length of the data to receive from the Gpib device
+* @return	Array of binary data
+*
+*/
+//+------------------------------------------------------------------
+Tango::DevVarCharArray *GpibDeviceServer::receive_bin_data(Tango::DevLong argin)
+{
+	//	POGO has generated a method core with argout allocation.
+	//	If you would like to use a static reference without copying,
+	//	See "TANGO Device Server Programmer's Manual"
+	//		(chapter : Writing a TANGO DS / Exchanging data)
+	//------------------------------------------------------------
+	DEBUG_STREAM << "GpibDeviceServer::receive_bin_data(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	throwExceptionIfDeviceIsClosed();
+	
+	long nb_data = argin;
+	char	*response;
+	
+	try
 	{
-		Tango::DevShort	argout ;
-		DEBUG_STREAM << "GpibDeviceServer::get_device_pad(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		if ( !dev_open ) // Trying to get pad on a non-open device.Generate exception.
-		{
-			DEBUG_STREAM << "getdevicepad command error." << endl;
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to get device primary adddress on a not open device.",
-				(const char *) "Device must be open before using get_device_pad command.",
-				Tango::ERR
-				);
-		}
-
-		argout = (Tango::DevShort)gpib_device->getDeviceAddr(); // This is soft
-		// command. No gpibDeviceException here.
-
-		return argout;
+		response = gpib_device->receiveData(nb_data);
+		
 	}
-
-
-	//+------------------------------------------------------------------
-	/**
-	*	method:	GpibDeviceServer::get_board_index
-	*
-	*	description:	method to execute "GetBoardIndex"
-	*	This command returns the board index.
-	*	It is the number N at the end of the name /dev/gpibN.
-	*	Throws Tango::DevFailed exception on error.
-	*
-	* @return	Board Index (starts with 0)
-	*
-	*/
-	//+------------------------------------------------------------------
-	Tango::DevShort GpibDeviceServer::get_board_index()
+	catch (gpibDeviceException e) {
+		DEBUG_STREAM << "receive_bin_data command error on " << e.getDeviceName() << endl;
+		//if (argout) delete argout;
+		Tango::Except::throw_exception(
+		    (const char*)(("gpibDeviceException on " + e.getDeviceName() ).c_str()),
+		    (const char*)e.getiberrMessage().c_str(),
+		    (const char*)e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+	
+	Tango::DevVarCharArray *argout = new Tango::DevVarCharArray();
+	argout->length(nb_data);
+	
+	// check if memory is allocated
+	if (argout == NULL)
 	{
-		Tango::DevShort	argout ;
-		DEBUG_STREAM << "GpibDeviceServer::get_board_index(): entering... !" << endl;
-
-		//	Add your own code to control device here
-
-		// Remark:
-		// Instead of testing if (dev_open == 0) which makes sense only
-		// once a specific GPIB device is open; could test here:
-		// if (board0 == NULL), since board index is available as soon as
-		// object of a class gpibBoard is created.
-
-		if ( !dev_open ) // Trying to get board index on a non-open device.Generate exception.
-		{
-			DEBUG_STREAM << "get_board_index command error." << endl;
-			Tango::Except::throw_exception(
-				(const char *) "gpibDeviceException.",
-				(const char *) "Attempt to get board index on a not open device.",
-				(const char *) "Device must be open before using get_board_index command.",
-				Tango::ERR
-				);
-		}
-
-		argout = (Tango::DevShort)boardind;
-		return argout;
+		DEBUG_STREAM << "receive_bin_data can not allocate memory." << endl;
+		Tango::Except::throw_exception(
+		    (const char*) "gpibDeviceException.",
+		    (const char*) "memory not allocated.",
+		    (const char*) "new Tango::DevVarCharArray() failed in receive_bin_data().",
+		    Tango::ERR
+		);
 	}
+	
+	for (long i = 0; i < nb_data; i++)
+		(*argout)[i] = response[i];
+		
+	delete [] response;
+	
+	return argout;
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::bcget_config
+*
+*	description:	method to execute "BCGetConfig"
+*	Returns a value for one configuration option for a GPIB Board.
+*	Throws Tango::DevFailed exception on error.
+*
+* @param	argin	Configuration option index (see ibask table)
+* @return	Value for wanted configuration option
+*
+*/
+//+------------------------------------------------------------------
+Tango::DevShort GpibDeviceServer::bcget_config(Tango::DevShort argin)
+{
+	Tango::DevShort	argout ;
+	DEBUG_STREAM << "GpibDeviceServer::bcget_config(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	// We don't check that board0 is open since this is done in
+	// the init_device method.
+	
+	// TODO: should test the value od argin = config. option index
+	//       since this is not done in getconfig() function inside
+	//       gpibDevice class.
+	
+	try
+	{
+		argout = (Tango::DevShort)board0->getconfig(argin);
+	}
+	catch (gpibDeviceException e)
+	{
+		DEBUG_STREAM << "BCGetConfig command error on " << e.getDeviceName() << endl;
+		argout = 0;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+	return argout;
+	
+	// if would work without exceptions, then instead of the last
+	// try/catch block above would have just the following 2 lines:
+	//argout = (Tango::DevShort)board0->getconfig(argin);
+	//return argout;
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::get_config
+*
+*	description:	method to execute "GetConfig"
+*	Get a value for one configuration option for a GPIB device.
+*	Throws Tango::DevFailed exception on error.
+*
+* @param	argin	Configuration option index (see ibask table)
+* @return	Value for wanted configuration option
+*
+*/
+//+------------------------------------------------------------------
+Tango::DevShort GpibDeviceServer::get_config(Tango::DevShort argin)
+{
+	Tango::DevShort	argout ;
+	DEBUG_STREAM << "GpibDeviceServer::get_config(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	throwExceptionIfDeviceIsClosed();
+	
+	// TODO: should test the value od argin = config. option index
+	//       since this is not done in getconfig() function inside
+	//       gpibDevice class.
+	
+	try
+	{
+		argout = (Tango::DevShort)gpib_device->getconfig(argin);
+	}
+	catch (gpibDeviceException e)
+	{
+		DEBUG_STREAM << "GetConfig command error on " << e.getDeviceName() << endl;
+		argout = 0;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+	return argout;
+	
+	// if would work without exceptions, then instead of the last
+	// try/catch block above would have just the following 2 lines:
+	//argout = (Tango::DevShort)gpib_device->getconfig(argin);
+	//return argout;
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::listener_check
+*
+*	description:	method to execute "ListenerCheck"
+*	This command returns the status of listener check on device and returns
+*	1, when device responds (= is alive) and 0, when not.
+*	Throws Tango::DevFailed exception on error.
+*
+* @return	Flag telling if selected GPIB device is alive
+*
+*/
+//+------------------------------------------------------------------
+Tango::DevShort GpibDeviceServer::listener_check()
+{
+	Tango::DevShort	argout ;
+	DEBUG_STREAM << "GpibDeviceServer::listener_check(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	throwExceptionIfDeviceIsClosed();
+	
+	try
+	{
+		argout = (Tango::DevShort)gpib_device->isAlive();
+	}
+	catch (gpibDeviceException e)
+	{
+		DEBUG_STREAM << "ListenerCheck command error on " << e.getDeviceName() << endl;
+		argout = 0;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+	return argout;
+	
+	// if would work without exceptions, then instead of the last
+	// try/catch block above would have just the following 2 lines:
+	//argout = (Tango::DevShort)gpib_device->isAlive();
+	//return argout;
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::get_serial_poll
+*
+*	description:	method to execute "GetSerialPoll"
+*	This command returns the serial poll byte of device.
+*	Throws Tango::DevFailed exception on error.
+*
+* @return	Serial poll status byte
+*
+*/
+//+------------------------------------------------------------------
+Tango::DevShort GpibDeviceServer::get_serial_poll()
+{
+	Tango::DevShort	argout ;
+	DEBUG_STREAM << "GpibDeviceServer::get_serial_poll(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	throwExceptionIfDeviceIsClosed();
+	
+	try
+	{
+		argout = (Tango::DevShort)gpib_device->getSerialPoll();
+	}
+	catch (gpibDeviceException e)
+	{
+		DEBUG_STREAM << "GetSerialPoll command error on " << e.getDeviceName() << endl;
+		argout = 0;
+		Tango::Except::throw_exception(
+		    (const char *) ("gpibDeviceException on " + e.getDeviceName() ).c_str(),
+		    (const char *) e.getiberrMessage().c_str(),
+		    (const char *) e.getibstaMessage().c_str(),
+		    Tango::ERR
+		);
+	}
+	return argout;
+	
+	// if would work without exceptions, then instead of the last
+	// try/catch block above would have just the following 2 lines:
+	//argout = (Tango::DevShort)gpib_device->getSerialPoll();
+	//return argout;
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::get_device_pad
+*
+*	description:	method to execute "GetDevicePad"
+*	This command returns the primary address of device,
+*	which has possible values 0->30.
+*	Throws Tango::DevFailed exception on error.
+*
+* @return	Device primary address
+*
+*/
+//+------------------------------------------------------------------
+Tango::DevShort GpibDeviceServer::get_device_pad()
+{
+	Tango::DevShort	argout ;
+	DEBUG_STREAM << "GpibDeviceServer::get_device_pad(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	
+	throwExceptionIfDeviceIsClosed();
+	
+	argout = (Tango::DevShort)gpib_device->getDeviceAddr(); // This is soft
+	// command. No gpibDeviceException here.
+	
+	return argout;
+}
+
+
+//+------------------------------------------------------------------
+/**
+*	method:	GpibDeviceServer::get_board_index
+*
+*	description:	method to execute "GetBoardIndex"
+*	This command returns the board index.
+*	It is the number N at the end of the name /dev/gpibN.
+*	Throws Tango::DevFailed exception on error.
+*
+* @return	Board Index (starts with 0)
+*
+*/
+//+------------------------------------------------------------------
+Tango::DevShort GpibDeviceServer::get_board_index()
+{
+	Tango::DevShort	argout ;
+	DEBUG_STREAM << "GpibDeviceServer::get_board_index(): entering... !" << endl;
+	
+	//	Add your own code to control device here
+	throwExceptionIfDeviceIsClosed();
+	
+	argout = (Tango::DevShort)boardind;
+	return argout;
+}
+
+/**
+ * This method test the dev_open flag, and throws an exception if its false.
+ * The method is here to factorize code in several places where this test was
+ * made.
+ */
+void GpibDeviceServer::throwExceptionIfDeviceIsClosed()
+{
+	if (dev_open == false) // Trying to access a non-open device generates an exception.
+	{
+		DEBUG_STREAM << "Error : operation on a not opened gpib device." << endl;
+		Tango::Except::throw_exception(
+		    (const char *) "gpibDeviceException.",
+		    (const char *) "Attempt to operate on a not open device.",
+		    (const char *) "Device must be opened before executing any command.",
+		    Tango::ERR
+		);
+	}
+}
 
 }	//	namespace

@@ -6,11 +6,14 @@
 //
 // project :	gpidDeviceServer
 //
-// $Author: franc7 $
+// $Author: vedder_bruno $
 //
-// $Revision: 1.7 $
+// $Revision: 1.8 $
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.7  2010/06/28 12:30:45  franc7
+// Added few new commands in server and gpibDevice.cpp for later spec integration
+//
 // Revision 1.6  2006/06/13 14:56:38  fbecheri
 // - Porting to Tango 5 with IDL 3
 // - Compatibility with the new NI4882 driver.
@@ -20,11 +23,11 @@
 // Revision 1.5  2005/07/04 11:34:11  vedder_bruno
 // Fixed a memory leak when gpib board/device was not found on server startup.
 // Server no more exits if a gpib board is not found at startup.
-// Remove Lock/Unlock commands cause they are no more needed since 
+// Remove Lock/Unlock commands cause they are no more needed since
 // serialisation is made by tango.
-// These commands where potentialy dangerous and could cause gpib bus to be 
+// These commands where potentialy dangerous and could cause gpib bus to be
 // locked permanently.
-// Added to CVS repository ugpib.h modified header that can be used with 
+// Added to CVS repository ugpib.h modified header that can be used with
 // C++ compiler.
 //
 // Revision 1.4  2005/05/13 15:18:20  andy_gotz
@@ -84,12 +87,12 @@
 //using namespace Tango;
 
 /**
- * @author	$Author: franc7 $
- * @version	$Revision: 1.7 $ $
+ * @author	$Author: vedder_bruno $
+ * @version	$Revision: 1.8 $ $
  */
 
- //	Add your own constants definitions here.
- //-----------------------------------------------
+//	Add your own constants definitions here.
+//-----------------------------------------------
 
 
 namespace GpibDeviceServer_ns
@@ -113,506 +116,508 @@ class GpibDeviceServer: public Tango::Device_4Impl
 public :
 	//	Add your own data members here
 	//-----------------------------------------
-    gpibDevice *gpib_device;	// Device to be instanciated with open()
-    gpibBoard  *board0;		// Gpib controller board.
-    bool 	dev_open;	// Flag use to avoid r/w operation on a 
-                                // closed device.
-    int         boardind;       // board index
-    
-	//	Here is the Start of the automatic code generation part
-	//-------------------------------------------------------------	
-/**
- *	@name attributes
- *	Attributs member data.
- */
-//@{
-//@}
-
-/**
- *	@name Device properties
- *	Device properties member data.
- */
-//@{
-/**
- *	This property is used to connect gpib device by name.
- */
-	string	gpibDeviceName;
-/**
- *	This is gpidDevice address.
- */
-	Tango::DevShort	gpibDeviceAddress;
-/**
- *	This is the GPIB device Time Out. Warning this is a predefined value:
- *	
- *	#define TNONE 0 Infinite timeout (disabled)
- *	#define T10us 1 Timeout of 10 us (ideal)
- *	#define T30us 2 Timeout of 30 us (ideal)
- *	#define T100us 3 Timeout of 100 us (ideal)
- *	#define T300us 4 Timeout of 300 us (ideal)
- *	#define T1ms 5 Timeout of 1 ms (ideal)
- *	#define T3ms 6 Timeout of 3 ms (ideal)
- *	#define T10ms 7 Timeout of 10 ms (ideal)
- *	#define T30ms 8 Timeout of 30 ms (ideal)
- *	#define T100ms 9 Timeout of 100 ms (ideal)
- *	#define T300ms 10 Timeout of 300 ms (ideal)
- *	#define T1s 11 Timeout of 1 s (ideal)
- *	#define T3s 12 Timeout of 3 s (ideal)
- *	#define T10s 13 Timeout of 10 s (ideal)
- *	#define T30s 14 Timeout of 30 s (ideal)
- *	#define T100s 15 Timeout of 100 s (ideal)
- *	#define T300s 16 Timeout of 300 s (ideal)
- *	#define T1000s 17 Timeout of 1000 s (maximum
- */
-	Tango::DevShort	gpibDeviceTimeOut;
-/**
- *	Second address of the gpib device.
- */
-	Tango::DevShort	gpibDeviceSecondaryAddress;
-/**
- *	This is the name of the board where gpib device is plugged.
- *	e.g "gpib1
- */
-	string	gpibBoardName;
-//@}
-
-/**@name Constructors
- * Miscellaneous constructors */
-//@{
-/**
- * Constructs a newly allocated Command object.
- *
- *	@param cl	Class.
- *	@param s 	Device Name
- */
-	GpibDeviceServer(Tango::DeviceClass *cl,string &s);
-/**
- * Constructs a newly allocated Command object.
- *
- *	@param cl	Class.
- *	@param s 	Device Name
- */
-	GpibDeviceServer(Tango::DeviceClass *cl,const char *s);
-/**
- * Constructs a newly allocated Command object.
- *
- *	@param cl	Class.
- *	@param s 	Device name
- *	@param d	Device description.
- */
-	GpibDeviceServer(Tango::DeviceClass *cl,const char *s,const char *d);
-//@}
-
-/**@name Destructor
- * Only one desctructor is defined for this class */
-//@{
-/**
- * The object desctructor.
- */	
-	~GpibDeviceServer() {};
-/**
- *	will be called at device destruction or at init command.
- */
-	void delete_device();
-//@}
-
+	gpibDevice *gpib_device;	// Device to be instanciated with open()
+	gpibBoard  *board0;		// Gpib controller board.
+	bool 	dev_open;	// Flag use to avoid r/w operation on a
+	// closed device.
+	int         boardind;       // board index
 	
-/**@name Miscellaneous methods */
-//@{
-/**
- *	Initialize the device
- */
+	//	Here is the Start of the automatic code generation part
+	//-------------------------------------------------------------
+	/**
+	 *	@name attributes
+	 *	Attributs member data.
+	 */
+	//@{
+	//@}
+	
+	/**
+	 *	@name Device properties
+	 *	Device properties member data.
+	 */
+	//@{
+	/**
+	 *	This property is used to connect gpib device by name.
+	 */
+	string	gpibDeviceName;
+	/**
+	 *	This is gpidDevice address.
+	 */
+	Tango::DevShort	gpibDeviceAddress;
+	/**
+	 *	This is the GPIB device Time Out. Warning this is a predefined value:
+	 *	
+	 *	#define TNONE 0 Infinite timeout (disabled)
+	 *	#define T10us 1 Timeout of 10 us (ideal)
+	 *	#define T30us 2 Timeout of 30 us (ideal)
+	 *	#define T100us 3 Timeout of 100 us (ideal)
+	 *	#define T300us 4 Timeout of 300 us (ideal)
+	 *	#define T1ms 5 Timeout of 1 ms (ideal)
+	 *	#define T3ms 6 Timeout of 3 ms (ideal)
+	 *	#define T10ms 7 Timeout of 10 ms (ideal)
+	 *	#define T30ms 8 Timeout of 30 ms (ideal)
+	 *	#define T100ms 9 Timeout of 100 ms (ideal)
+	 *	#define T300ms 10 Timeout of 300 ms (ideal)
+	 *	#define T1s 11 Timeout of 1 s (ideal)
+	 *	#define T3s 12 Timeout of 3 s (ideal)
+	 *	#define T10s 13 Timeout of 10 s (ideal)
+	 *	#define T30s 14 Timeout of 30 s (ideal)
+	 *	#define T100s 15 Timeout of 100 s (ideal)
+	 *	#define T300s 16 Timeout of 300 s (ideal)
+	 *	#define T1000s 17 Timeout of 1000 s (maximum
+	 */
+	Tango::DevShort	gpibDeviceTimeOut;
+	/**
+	 *	Second address of the gpib device.
+	 */
+	Tango::DevShort	gpibDeviceSecondaryAddress;
+	/**
+	 *	This is the name of the board where gpib device is plugged.
+	 *	e.g "gpib1
+	 */
+	string	gpibBoardName;
+	//@}
+	
+	/**@name Constructors
+	 * Miscellaneous constructors */
+	//@{
+	/**
+	 * Constructs a newly allocated Command object.
+	 *
+	 *	@param cl	Class.
+	 *	@param s 	Device Name
+	 */
+	GpibDeviceServer(Tango::DeviceClass *cl,string &s);
+	/**
+	 * Constructs a newly allocated Command object.
+	 *
+	 *	@param cl	Class.
+	 *	@param s 	Device Name
+	 */
+	GpibDeviceServer(Tango::DeviceClass *cl,const char *s);
+	/**
+	 * Constructs a newly allocated Command object.
+	 *
+	 *	@param cl	Class.
+	 *	@param s 	Device name
+	 *	@param d	Device description.
+	 */
+	GpibDeviceServer(Tango::DeviceClass *cl,const char *s,const char *d);
+	//@}
+	
+	/**@name Destructor
+	 * Only one desctructor is defined for this class */
+	//@{
+	/**
+	 * The object desctructor.
+	 */	
+	~GpibDeviceServer() {};
+	/**
+	 *	will be called at device destruction or at init command.
+	 */
+	void delete_device();
+	//@}
+	
+	
+	/**@name Miscellaneous methods */
+	//@{
+	/**
+	 *	Initialize the device
+	 */
 	virtual void init_device();
-/**
- *	Always executed method befor execution command method.
- */
+	/**
+	 *	Always executed method befor execution command method.
+	 */
 	virtual void always_executed_hook();
-
-//@}
-
-/**
- * @name GpibDeviceServer methods prototypes
- */
-
-//@{
-/**
- *	Execution allowed for Write command.
- */
+	
+	//@}
+	
+	/**
+	 * @name GpibDeviceServer methods prototypes
+	 */
+	
+	//@{
+	/**
+	 *	Execution allowed for Write command.
+	 */
 	virtual bool is_Write_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for Read command.
- */
+	/**
+	 *	Execution allowed for Read command.
+	 */
 	virtual bool is_Read_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for Close command.
- */
+	/**
+	 *	Execution allowed for Close command.
+	 */
 	virtual bool is_Close_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for ReadLongString command.
- */
+	/**
+	 *	Execution allowed for ReadLongString command.
+	 */
 	virtual bool is_ReadLongString_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for GetName command.
- */
+	/**
+	 *	Execution allowed for GetName command.
+	 */
 	virtual bool is_GetName_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for Local command.
- */
+	/**
+	 *	Execution allowed for Local command.
+	 */
 	virtual bool is_Local_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for Remote command.
- */
+	/**
+	 *	Execution allowed for Remote command.
+	 */
 	virtual bool is_Remote_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for Getiberr command.
- */
+	/**
+	 *	Execution allowed for Getiberr command.
+	 */
 	virtual bool is_Getiberr_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for Getibsta command.
- */
+	/**
+	 *	Execution allowed for Getibsta command.
+	 */
 	virtual bool is_Getibsta_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for Getibcnt command.
- */
+	/**
+	 *	Execution allowed for Getibcnt command.
+	 */
 	virtual bool is_Getibcnt_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for Clear command.
- */
+	/**
+	 *	Execution allowed for Clear command.
+	 */
 	virtual bool is_Clear_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for SetTimeOut command.
- */
+	/**
+	 *	Execution allowed for SetTimeOut command.
+	 */
 	virtual bool is_SetTimeOut_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for BCsendIFC command.
- */
+	/**
+	 *	Execution allowed for BCsendIFC command.
+	 */
 	virtual bool is_BCsendIFC_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for BCclr command.
- */
+	/**
+	 *	Execution allowed for BCclr command.
+	 */
 	virtual bool is_BCclr_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for GetDeviceID command.
- */
+	/**
+	 *	Execution allowed for GetDeviceID command.
+	 */
 	virtual bool is_GetDeviceID_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for BCllo command.
- */
+	/**
+	 *	Execution allowed for BCllo command.
+	 */
 	virtual bool is_BCllo_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for BCcmd command.
- */
+	/**
+	 *	Execution allowed for BCcmd command.
+	 */
 	virtual bool is_BCcmd_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for Open command.
- */
+	/**
+	 *	Execution allowed for Open command.
+	 */
 	virtual bool is_Open_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for OpenByName command.
- */
+	/**
+	 *	Execution allowed for OpenByName command.
+	 */
 	virtual bool is_OpenByName_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for BCGetConnectedDeviceList command.
- */
+	/**
+	 *	Execution allowed for BCGetConnectedDeviceList command.
+	 */
 	virtual bool is_BCGetConnectedDeviceList_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for Trigger command.
- */
+	/**
+	 *	Execution allowed for Trigger command.
+	 */
 	virtual bool is_Trigger_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for WriteRead command.
- */
+	/**
+	 *	Execution allowed for WriteRead command.
+	 */
 	virtual bool is_WriteRead_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for Config command.
- */
+	/**
+	 *	Execution allowed for Config command.
+	 */
 	virtual bool is_Config_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for BCConfig command.
- */
+	/**
+	 *	Execution allowed for BCConfig command.
+	 */
 	virtual bool is_BCConfig_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for SendBinData command.
- */
+	/**
+	 *	Execution allowed for SendBinData command.
+	 */
 	virtual bool is_SendBinData_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for ReceiveBinData command.
- */
+	/**
+	 *	Execution allowed for ReceiveBinData command.
+	 */
 	virtual bool is_ReceiveBinData_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for BCGetConfig command.
- */
+	/**
+	 *	Execution allowed for BCGetConfig command.
+	 */
 	virtual bool is_BCGetConfig_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for GetConfig command.
- */
+	/**
+	 *	Execution allowed for GetConfig command.
+	 */
 	virtual bool is_GetConfig_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for ListenerCheck command.
- */
+	/**
+	 *	Execution allowed for ListenerCheck command.
+	 */
 	virtual bool is_ListenerCheck_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for GetSerialPoll command.
- */
+	/**
+	 *	Execution allowed for GetSerialPoll command.
+	 */
 	virtual bool is_GetSerialPoll_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for GetDevicePad command.
- */
+	/**
+	 *	Execution allowed for GetDevicePad command.
+	 */
 	virtual bool is_GetDevicePad_allowed(const CORBA::Any &any);
-/**
- *	Execution allowed for GetBoardIndex command.
- */
+	/**
+	 *	Execution allowed for GetBoardIndex command.
+	 */
 	virtual bool is_GetBoardIndex_allowed(const CORBA::Any &any);
-/**
- * This command send a string to the device. Throws devFailed on error.
- *	@param	argin	String to send to the device
- *	@exception DevFailed
- */
+	/**
+	 * This command send a string to the device. Throws devFailed on error.
+	 *	@param	argin	String to send to the device
+	 *	@exception DevFailed
+	 */
 	void	write(Tango::DevString);
-/**
- * This command reads a string from a gpib device. 
- *	@return	Returned string.
- *	@exception DevFailed
- */
+	/**
+	 * This command reads a string from a gpib device. 
+	 *	@return	Returned string.
+	 *	@exception DevFailed
+	 */
 	Tango::DevString	read();
-/**
- * Close a previously opened gpib device.
- *	@exception DevFailed
- */
+	/**
+	 * Close a previously opened gpib device.
+	 *	@exception DevFailed
+	 */
 	void	close();
-/**
- * For most gpib device the read command is enough to talk with the device. 
- * In certain case, the gpibDevice returns a very big string, which is larger 
- * than the read buffer. 
- * As concret example, on :CALC:DATA? command, the hp3588 returns 400 strings
- * representing a spectrum, for a total size > 4Kbytes. This method reads 
- * these sort of long string.
- * For efficiency, its better to use the read command instead of readLongString.
- * This method is provided for exceptionnal case. 
- *	@param	argin	Max expected string length.
- *	@return	The readed string.
- *	@exception DevFailed
- */
+	/**
+	 * For most gpib device the read command is enough to talk with the device. 
+	 * In certain case, the gpibDevice returns a very big string, which is larger 
+	 * than the read buffer. 
+	 * As concret example, on :CALC:DATA? command, the hp3588 returns 400 strings
+	 * representing a spectrum, for a total size > 4Kbytes. This method reads 
+	 * these sort of long string.
+	 * For efficiency, its better to use the read command instead of readLongString.
+	 * This method is provided for exceptionnal case. 
+	 *	@param	argin	Max expected string length.
+	 *	@return	The readed string.
+	 *	@exception DevFailed
+	 */
 	Tango::DevString	read_long_string(Tango::DevLong);
-/**
- * Return the gpib device name, as define on the gpib Driver (see them with
- * ibconf tool).
- *	Throws DevFailed on error
- *	@return	gpib device name
- *	@exception DevFailed
- */
+	/**
+	 * Return the gpib device name, as define on the gpib Driver (see them with
+	 * ibconf tool).
+	 *	Throws DevFailed on error
+	 *	@return	gpib device name
+	 *	@exception DevFailed
+	 */
 	Tango::DevString	get_name();
-/**
- * Set the gpib device in local mode. Throws DevFailed on error.
- *	@exception DevFailed
- */
+	/**
+	 * Set the gpib device in local mode. Throws DevFailed on error.
+	 *	@exception DevFailed
+	 */
 	void	local();
-/**
- * Set the gpib device in remote mode. This command is here for compatibility,
- * since network access to a gpib Device, will automatically turn it to remote
- * mode.
- *	@exception DevFailed
- */
+	/**
+	 * Set the gpib device in remote mode. This command is here for compatibility,
+	 * since network access to a gpib Device, will automatically turn it to remote
+	 * mode.
+	 *	@exception DevFailed
+	 */
 	void	remote();
-/**
- * This command returns last gpib device error code (lib gpib iberr).
- *	@return	no argout
- *	@exception DevFailed
- */
+	/**
+	 * This command returns last gpib device error code (lib gpib iberr).
+	 *	@return	no argout
+	 *	@exception DevFailed
+	 */
 	Tango::DevLong	getiberr();
-/**
- * This command returns last gpib device state code (lib gpib ibsta).
- *	@return	no argout
- *	@exception DevFailed
- */
+	/**
+	 * This command returns last gpib device state code (lib gpib ibsta).
+	 *	@return	no argout
+	 *	@exception DevFailed
+	 */
 	Tango::DevLong	getibsta();
-/**
- * This command returns last gpib device count var (lib gpib ibcnt).
- *	@return	no argout
- *	@exception DevFailed
- */
+	/**
+	 * This command returns last gpib device count var (lib gpib ibcnt).
+	 *	@return	no argout
+	 *	@exception DevFailed
+	 */
 	Tango::DevULong	getibcnt();
-/**
- * This command clears the gpib device. 
- *	@exception DevFailed
- */
+	/**
+	 * This command clears the gpib device. 
+	 *	@exception DevFailed
+	 */
 	void	clear();
-/**
- * This command set Time Out value for the gpib device.
- * Warning these values are predefined, cf gpibDevice.h
- * accepted value are [0-15]. 
- *	@param	argin	accepted value are [0-15]
- *	@exception DevFailed
- */
+	/**
+	 * This command set Time Out value for the gpib device.
+	 * Warning these values are predefined, cf gpibDevice.h
+	 * accepted value are [0-15]. 
+	 *	@param	argin	accepted value are [0-15]
+	 *	@exception DevFailed
+	 */
 	void	set_time_out(Tango::DevShort);
-/**
- * This commands send IFC to the gpib Board0.
- * So the board becomes Controller In Charge and devices are cleared.
- * All commands beginning with'BC' are Board Commands.
- *	@exception DevFailed
- */
+	/**
+	 * This commands send IFC to the gpib Board0.
+	 * So the board becomes Controller In Charge and devices are cleared.
+	 * All commands beginning with'BC' are Board Commands.
+	 *	@exception DevFailed
+	 */
 	void	bcsend_ifc();
-/**
- * This command clears a specified device.
- *	@param	argin	handler of the device to clear.
- *	@exception DevFailed
- */
+	/**
+	 * This command clears a specified device.
+	 *	@param	argin	handler of the device to clear.
+	 *	@exception DevFailed
+	 */
 	void	bcclr(Tango::DevLong);
-/**
- * This command return internal gpib device ID.
- * This is usefull for board command using this ID to acces devices, 
- * as BCclr cmd.
- *	@return	no argout
- *	@exception DevFailed
- */
+	/**
+	 * This command return internal gpib device ID.
+	 * This is usefull for board command using this ID to acces devices, 
+	 * as BCclr cmd.
+	 *	@return	no argout
+	 *	@exception DevFailed
+	 */
 	Tango::DevLong	get_device_id();
-/**
- * This command send a local lockout to the specified device.
- *	@param	argin	Device ID
- *	@exception DevFailed
- */
+	/**
+	 * This command send a local lockout to the specified device.
+	 *	@param	argin	Device ID
+	 *	@exception DevFailed
+	 */
 	void	bcllo(Tango::DevLong);
-/**
- * Send a GPIB command message.
- * This method is not used to transmit programming instruction to devices
- * this kind of instructions are transmitted with the read / write methods.
- * As done in write method, cmd automatically append EOS, as defined with
- * setEOS method.
- *	@param	argin	Command string.
- *	@exception DevFailed
- */
+	/**
+	 * Send a GPIB command message.
+	 * This method is not used to transmit programming instruction to devices
+	 * this kind of instructions are transmitted with the read / write methods.
+	 * As done in write method, cmd automatically append EOS, as defined with
+	 * setEOS method.
+	 *	@param	argin	Command string.
+	 *	@exception DevFailed
+	 */
 	void	bccmd(Tango::DevString);
-/**
- * This command opens a gpib device using the gpibDeviceAddress property,
- * assuming that the device is controlled by the board gpib0.
- * Therefore it uses the 4th gpibDevice constructor.
- * This command should not be used since gpib device is open on device
- * server initialisation.
- * It is provided in case of problem to do it manually.
- * This command is allowed on fault to accept reconnection.
- *	@exception DevFailed
- */
+	/**
+	 * This command opens a gpib device using the gpibDeviceAddress property,
+	 * assuming that the device is controlled by the board gpib0.
+	 * Therefore it uses the 4th gpibDevice constructor.
+	 * This command should not be used since gpib device is open on device
+	 * server initialisation.
+	 * It is provided in case of problem to do it manually.
+	 * This command is allowed on fault to accept reconnection.
+	 *	@exception DevFailed
+	 */
 	void	open();
-/**
- * This command opens a gpib device using the gpibDeviceName property,
- * assuming that the device is controlled by the board gpib0.
- * Therefore it uses the 2nd gpibDevice constructor.
- * This command should not be used since gpib device is opened on
- * device server initialisation.
- * It is provided in case of problem to do it manually.
- * This command is allowed on fault to accept reconnection.
- *	@exception DevFailed
- */
+	/**
+	 * This command opens a gpib device using the gpibDeviceName property,
+	 * assuming that the device is controlled by the board gpib0.
+	 * Therefore it uses the 2nd gpibDevice constructor.
+	 * This command should not be used since gpib device is opened on
+	 * device server initialisation.
+	 * It is provided in case of problem to do it manually.
+	 * This command is allowed on fault to accept reconnection.
+	 *	@exception DevFailed
+	 */
 	void	open_by_name();
-/**
- * This command returns the string array :
- *	+ primary address + secondary address for 1st device found
- *	+ primary address + secondary address for 2d device found
- *	ect ....
- *	ex:
- *	HEWLETT-PACKARD,3589A,3343A00642,A.00.03 PAD=6 SAD=0
- *	@return	list of connected device on the GPIB bus
- *	@exception DevFailed
- */
+	/**
+	 * This command returns the string array :
+	 *	+ primary address + secondary address for 1st device found
+	 *	+ primary address + secondary address for 2d device found
+	 *	ect ....
+	 *	ex:
+	 *	HEWLETT-PACKARD,3589A,3343A00642,A.00.03 PAD=6 SAD=0
+	 *	@return	list of connected device on the GPIB bus
+	 *	@exception DevFailed
+	 */
 	Tango::DevVarStringArray	*bcget_connected_device_list();
-/**
- * This command sends a trigger signal to the GPIB device.
- * If the device was previously set up, it can make its measurment, 
- * and send it on the bus.
- * Measure is now get with a read command.
- *	@exception DevFailed
- */
+	/**
+	 * This command sends a trigger signal to the GPIB device.
+	 * If the device was previously set up, it can make its measurment, 
+	 * and send it on the bus.
+	 * Measure is now get with a read command.
+	 *	@exception DevFailed
+	 */
 	void	trigger();
-/**
- * This command perform a write on the GPIB device, and then perform a read to
- * get the answer, before returning it.
- *	@param	argin	String to send to the gpib device.
- *	@return	String returned by the gpib Device.
- *	@exception DevFailed
- */
+	/**
+	 * This command perform a write on the GPIB device, and then perform a read to
+	 * get the answer, before returning it.
+	 *	@param	argin	String to send to the gpib device.
+	 *	@return	String returned by the gpib Device.
+	 *	@exception DevFailed
+	 */
 	Tango::DevString	write_read(Tango::DevString);
-/**
- * index 0 of input array is the GPIB option to modify.
- * index 1 is the new value to associate to this option.
- *	@param	argin	Array of 2 long.
- *	@exception DevFailed
- */
+	/**
+	 * index 0 of input array is the GPIB option to modify.
+	 * index 1 is the new value to associate to this option.
+	 *	@param	argin	Array of 2 long.
+	 *	@exception DevFailed
+	 */
 	void	config(const Tango::DevVarLongArray *);
-/**
- * Same method than Config, but sent on gpib Board instead of GPIB device.
- *	@param	argin	Array of 2 long.
- *	@exception DevFailed
- */
+	/**
+	 * Same method than Config, but sent on gpib Board instead of GPIB device.
+	 *	@param	argin	Array of 2 long.
+	 *	@exception DevFailed
+	 */
 	void	bcconfig(const Tango::DevVarLongArray *);
-/**
- * This command send an array of binary data to the device through the GPIB bus.
- *	@param	argin	Array of binary data to send to the device
- *	@exception DevFailed
- */
+	/**
+	 * This command send an array of binary data to the device through the GPIB bus.
+	 *	@param	argin	Array of binary data to send to the device
+	 *	@exception DevFailed
+	 */
 	void	send_bin_data(const Tango::DevVarCharArray *);
-/**
- * This command reads an array of binary data from a gpib device.
- * Up to 65536 bytes. In generaly, a Gpib device can send or receive 64Ko.
- *	@param	argin	length of the data to receive from the Gpib device
- *	@return	Array of binary data
- *	@exception DevFailed
- */
+	/**
+	 * This command reads an array of binary data from a gpib device.
+	 * Up to 65536 bytes. In generaly, a Gpib device can send or receive 64Ko.
+	 *	@param	argin	length of the data to receive from the Gpib device
+	 *	@return	Array of binary data
+	 *	@exception DevFailed
+	 */
 	Tango::DevVarCharArray	*receive_bin_data(Tango::DevLong);
-/**
- * Thic commands gets a value for one configuration option for a GPIB Board.
- *	@param	argin	Configuration option index (see ibask table)
- *	@return	Value for wanted configuration option
- *	@exception DevFailed
- */
+	/**
+	 * Thic commands gets a value for one configuration option for a GPIB Board.
+	 *	@param	argin	Configuration option index (see ibask table)
+	 *	@return	Value for wanted configuration option
+	 *	@exception DevFailed
+	 */
 	Tango::DevShort	bcget_config(Tango::DevShort);
-/**
- * This command gets a value for one configuration option for a GPIB device.
- *	@param	argin	Configuration option index (see ibask table)
- *	@return	Value for wanted configuration option
- *	@exception DevFailed
- */
+	/**
+	 * This command gets a value for one configuration option for a GPIB device.
+	 *	@param	argin	Configuration option index (see ibask table)
+	 *	@return	Value for wanted configuration option
+	 *	@exception DevFailed
+	 */
 	Tango::DevShort	get_config(Tango::DevShort);
-/**
- * This command gets the status of listener check on device and returns
- * 1, when device responds (= is alive) and 0, when not.
- *	@return	Flag telling if selected GPIB device is alive
- *	@exception DevFailed
- */
+	/**
+	 * This command gets the status of listener check on device and returns
+	 * 1, when device responds (= is alive) and 0, when not.
+	 *	@return	Flag telling if selected GPIB device is alive
+	 *	@exception DevFailed
+	 */
 	Tango::DevShort	listener_check();
-/**
- * This command gets the serial poll byte of device.
- *	@return	Serial poll status byte
- *	@exception DevFailed
- */
+	/**
+	 * This command gets the serial poll byte of device.
+	 *	@return	Serial poll status byte
+	 *	@exception DevFailed
+	 */
 	Tango::DevShort	get_serial_poll();
-/**
- * This command gets the primary address of device,
- * which has possible values 0->30.
- *	@return	Device primary address
- *	@exception DevFailed
- */
+	/**
+	 * This command gets the primary address of device,
+	 * which has possible values 0->30.
+	 *	@return	Device primary address
+	 *	@exception DevFailed
+	 */
 	Tango::DevShort	get_device_pad();
-/**
- * This command gets the board index.
- * It is the number N at the end of the name /dev/gpibN.
- *	@return	Board Index (starts with 0)
- *	@exception DevFailed
- */
+	/**
+	 * This command gets the board index.
+	 * It is the number N at the end of the name /dev/gpibN.
+	 *	@return	Board Index (starts with 0)
+	 *	@exception DevFailed
+	 */
 	Tango::DevShort	get_board_index();
-
-/**
- *	Read the device properties from database
- */
-	 void get_device_property();
-//@}
-
+	
+	/**
+	 *	Read the device properties from database
+	 */
+	void get_device_property();
+	//@}
+	
 	//	Here is the end of the automatic code generation part
-	//-------------------------------------------------------------	
-
-
-
-protected :	
+	//-------------------------------------------------------------
+	
+	
+	
+protected :
 	//	Add your own data members here
 	//-----------------------------------------
+	
+	void throwExceptionIfDeviceIsClosed();
 };
 
 }	// namespace
